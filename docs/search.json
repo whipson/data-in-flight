@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "My name is Will, I’m a Data Engineer at the Halifax International Airport. I write about things that interest me in the world of data engineering and data science. I’m an enthusiastic R developer and author of the maestro package.\nMost of my working hours are spent managing a data platform - building data pipelines, managing databases, and serving consumers of data. Outside of that I like reading, drawing, and watching spy films.\nWrites about:\n\nR\nData Engineering\nData Visualization"
+  },
+  {
+    "objectID": "posts/prepare-for-takeoff/index.html",
+    "href": "posts/prepare-for-takeoff/index.html",
+    "title": "Prepare for Takeoff",
+    "section": "",
+    "text": "My new blog Data In Flight is about sharing my experiences working with real data on a small scale. In my experience I’ve found that exciting things happen when you have small-medium sized data and an even smaller budget. Most people don’t need the latest and greatest VC backed data platform, despite what tech influencers on LinkedIn say.\nThis blog is about scrappy data engineering with a team of one (or at most a number countable on a single hand). My natural inclination is to use R for everything so most of the code-related content in this blog will be in R.\nNothing here is intended to be polished or the final word (a near impossibility in a rapidly changing field). It’s about the journey and not the destination."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Data in Flight",
+    "section": "",
+    "text": "Prepare for Takeoff\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\nMay 24, 2024\n\n\nWill Hipson\n\n\n\n\n\n\nNo matching items"
+  }
+]
