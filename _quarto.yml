@@ -1,0 +1,22 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "data-in-flight"
+  navbar:
+    right:
+      - about.qmd
+      - icon: linkedin
+        text: LinkedIn
+        href: https://www.linkedin.com/in/will-hipson/
+      - icon: github
+        text: Github
+        href: https://github.com/whipson
+format:
+  html:
+    theme: litera
+    css: styles.css
+
+editor: visual
+
