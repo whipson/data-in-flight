@@ -28,6 +28,8 @@ asciicast::init_knitr_engine(
 )
 ```
 
+![](images/DALL·E%202024-06-24%2013.18.18%20-%20A%20very%20simple%20blueprint-style%20header%20image%20with%20a%20hand-drawn%20feel,%20focusing%20on%20music.%20Include%20only%20a%20single%20detailed%20sketch%20of%20a%20musical%20note.%20The%20bac.webp){fig-alt="Blueprint with a music note"}
+
 I'm thrilled to announce the alpha release of [maestro](https://whipson.github.io/maestro/) - a new package for developing, scheduling, and monitoring data pipelines in R. Here, I'll walk through what maestro does and why you'd want to use it.
 
 Maestro is currently in its earliest stage of release and is not yet available on CRAN. It can be installed via Github like so:
@@ -189,7 +191,8 @@ schedule <- build_schedule()
 
 orch_result <- run_schedule(
   schedule,
-  orch_frequency = "1 day"
+  orch_frequency = "1 day",
+  check_datetime = lubridate::now(tzone = "America/Halifax")
 )
 ```
 
@@ -273,7 +276,7 @@ I'd be remiss not to mention a few caveats of maestro:
 1.  It should only be used for light-medium scale batch jobs. If you need to do streaming and/or heavy load jobs, it's probably not for you.
 2.  Configuring the schedule for the orchestrator requires some thought. If you have several pipelines at different intervals and times you'll want to choose a frequency that makes sense. You can use `suggest_orch_frequency()` to get a heuristic suggestion based on a schedule. Even then - you need to make sure you actually run the orchestrator at this frequency. Weird things happen if your orchestrator actually runs more or less frequently than you said it would.
 
-In later posts, I'll dig more into the deployment side of maestro, in particular cloud-based solutions. For now, please [read the docs](https://whipson.github.io/maestro/) and try out the package.
+That said, I think maestro is great for small-medium sized pipeline orchestration. If you're looking to deploy maestro on the cloud, this [blog post](../maestro-gcp-deployment/maestro-gcp-deployment.qmd) will help you get started in Google Compute Platform (GCP).
 
 #### Notes
 

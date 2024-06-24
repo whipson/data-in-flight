@@ -6,6 +6,8 @@ date-modified: last-modified
 categories: [news]
 ---
 
+![](images/DALL·E 2024-06-24 13.19.34 - A very simple blueprint-style header image with a hand-drawn feel, focusing on an airplane. Include only a single detailed sketch of an airplane. The .webp){fig-alt="Blueprint with an airplane"}
+
 My new blog *Data In Flight* is about sharing my experiences working with real data on a small scale. In my experience I've found that exciting things happen when you have small-medium sized data and an even smaller budget. Most people don't need the latest and greatest VC backed data platform, despite what tech influencers on LinkedIn say.
 
 This blog is about scrappy data engineering with a team of one (or at most a number countable on a single hand). My natural inclination is to use R for everything so most of the code-related content in this blog will be in R.
