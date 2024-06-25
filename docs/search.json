@@ -18,14 +18,14 @@
     "href": "index.html",
     "title": "Data in Flight",
     "section": "",
-    "text": "Deploying a Maestro Project to Google Cloud Platform\n\n\nHow to deploy a maestro project to GCP.\n\n\n\nR\n\n\ndata engineering\n\n\ndata pipelines\n\n\norchestration\n\n\nmaestro\n\n\ndeployment\n\n\ncloud\n\n\n\n\n\n\n\n\n\nJun 24, 2024\n\n\nWill Hipson\n\n\n\n\n\n\n\n\n\n\n\n\nHello maestro\n\n\nA new package for orchestrating data pipelines in R\n\n\n\nR\n\n\ndata engineering\n\n\ndata pipelines\n\n\norchestration\n\n\nmaestro\n\n\npackages\n\n\ndeployment\n\n\n\n\n\n\n\n\n\nJun 19, 2024\n\n\nWill Hipson\n\n\n\n\n\n\n\n\n\n\n\n\nPrepare for Takeoff\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\nMay 24, 2024\n\n\nWill Hipson\n\n\n\n\n\n\nNo matching items"
+    "text": "Deploying a Maestro Project to Google Cloud Platform\n\n\nHow to deploy a maestro project to GCP\n\n\n\nR\n\n\ndata engineering\n\n\ndata pipelines\n\n\norchestration\n\n\nmaestro\n\n\ndeployment\n\n\ncloud\n\n\n\n\n\n\n\n\n\nJun 24, 2024\n\n\nWill Hipson\n\n\n\n\n\n\n\n\n\n\n\n\nHello maestro\n\n\nA new package for orchestrating data pipelines in R\n\n\n\nR\n\n\ndata engineering\n\n\ndata pipelines\n\n\norchestration\n\n\nmaestro\n\n\npackages\n\n\ndeployment\n\n\n\n\n\n\n\n\n\nJun 19, 2024\n\n\nWill Hipson\n\n\n\n\n\n\n\n\n\n\n\n\nPrepare for Takeoff\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\nMay 24, 2024\n\n\nWill Hipson\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "posts/hello-maestro/hello-maestro.html",
     "href": "posts/hello-maestro/hello-maestro.html",
     "title": "Hello maestro",
     "section": "",
-    "text": "I’m thrilled to announce the alpha release of maestro - a new package for developing, scheduling, and monitoring data pipelines in R. Here, I’ll walk through what maestro does and why you’d want to use it.\nMaestro is currently in its earliest stage of release and is not yet available on CRAN. It can be installed via Github like so:\nremotes::install_github(\"https://github.com/whipson/maestro\")"
+    "text": "I’m thrilled to announce the CRAN release of maestro - a new package for developing, scheduling, and monitoring data pipelines. Here, I’ll walk through what maestro does and why you’d want to use it.\ninstall.packages(\"maestro\")"
   },
   {
     "objectID": "posts/hello-maestro/hello-maestro.html#the-motivation",
@@ -67,7 +67,7 @@
     "href": "posts/hello-maestro/hello-maestro.html#final-remarks",
     "title": "Hello maestro",
     "section": "Final Remarks",
-    "text": "Final Remarks\nIn this post, we saw how maestro can be used to orchestrate multiple pipelines in a single R project. Maestro is in its early development, but I encourage you to try it out. We’re using it in production to orchestrate 18 production pipelines at the Halifax International Airport!\nI’d be remiss not to mention a few caveats of maestro:\n\nIt should only be used for light-medium scale batch jobs. If you need to do streaming and/or heavy load jobs, it’s probably not for you.\nConfiguring the schedule for the orchestrator requires some thought. If you have several pipelines at different intervals and times you’ll want to choose a frequency that makes sense. You can use suggest_orch_frequency() to get a heuristic suggestion based on a schedule. Even then - you need to make sure you actually run the orchestrator at this frequency. Weird things happen if your orchestrator actually runs more or less frequently than you said it would.\n\nThat said, I think maestro is great for small-medium sized pipeline orchestration. If you’re looking to deploy maestro on the cloud, this blog post will help you get started in Google Compute Platform (GCP).\n\nNotes\nThis post was created using R version 4.3.3 (2024-02-29) and maestro version 0.0.3."
+    "text": "Final Remarks\nIn this post, we saw how maestro can be used to orchestrate multiple pipelines in a single R project. Maestro is in its early development, but I encourage you to try it out. We’re using it in production to orchestrate 18 production pipelines at the Halifax International Airport!\nI’d be remiss not to mention a few caveats of maestro:\n\nIt should only be used for light-medium scale batch jobs. If you need to do streaming and/or heavy load jobs, it’s probably not for you.\nConfiguring the schedule for the orchestrator requires some thought. If you have several pipelines at different intervals and times you’ll want to choose a frequency that makes sense. You can use suggest_orch_frequency() to get a heuristic suggestion based on a schedule. Even then - you need to make sure you actually run the orchestrator at this frequency. Weird things happen if your orchestrator actually runs more or less frequently than you said it would.\n\nThat said, I think maestro is great for small-medium sized pipeline orchestration. If you’re looking to deploy maestro on the cloud, this blog post will help you get started in Google Compute Platform (GCP).\n\nNotes\nThis post was created using R version 4.3.3 (2024-02-29) and maestro version 0.1.1."
   },
   {
     "objectID": "posts/maestro-gcp-deployment/maestro-gcp-deployment.html",

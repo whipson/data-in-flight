@@ -186,14 +186,14 @@
     },
     "cli": {
       "Package": "cli",
-      "Version": "3.6.2",
+      "Version": "3.6.3",
       "Source": "Repository",
       "Repository": "RSPM",
       "Requirements": [
         "R",
         "utils"
       ],
-      "Hash": "1216ac65ac55ec0058a6f75d7ca0fd52"
+      "Hash": "b21916dd77a27642b447374a5d30ecf3"
     },
     "commonmark": {
       "Package": "commonmark",
@@ -214,15 +214,15 @@
     },
     "crayon": {
       "Package": "crayon",
-      "Version": "1.5.2",
+      "Version": "1.5.3",
       "Source": "Repository",
-      "Repository": "CRAN",
+      "Repository": "RSPM",
       "Requirements": [
         "grDevices",
         "methods",
         "utils"
       ],
-      "Hash": "e8a1e41acf02548751f45c718d55aa6a"
+      "Hash": "859d96e65ef198fd43e82b9628d593ef"
     },
     "curl": {
       "Package": "curl",
@@ -527,14 +527,14 @@
     },
     "maestro": {
       "Package": "maestro",
-      "Version": "0.0.3",
+      "Version": "0.1.1",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "maestro",
       "RemoteUsername": "whipson",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "ac6a3b752447199466567179cd0c8499bc1199dc",
+      "RemoteRef": "cran-revision-1",
+      "RemoteSha": "4a645d9c14c2c75f85bc98a800309d67d8b3eff2",
       "Requirements": [
         "R",
         "R.utils",
@@ -546,12 +546,11 @@
         "purrr",
         "rlang",
         "roxygen2",
-        "rstudioapi",
         "tictoc",
         "timechange",
         "utils"
       ],
-      "Hash": "87a2ba6eb3c388e3aed7693ae71ae592"
+      "Hash": "f7d1dbd1762ebb9d50d515516ba58f92"
     },
     "magick": {
       "Package": "magick",
@@ -797,13 +796,6 @@
         "R"
       ],
       "Hash": "4c8415e0ec1e29f3f4f6fc108bef0144"
-    },
-    "rstudioapi": {
-      "Package": "rstudioapi",
-      "Version": "0.16.0",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Hash": "96710351d642b70e8f02ddeb237c46a7"
     },
     "sass": {
       "Package": "sass",

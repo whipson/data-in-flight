@@ -5,6 +5,7 @@ author: "Will Hipson"
 date: "2024-06-19"
 date-modified: last-modified
 categories: [R, data engineering, data pipelines, orchestration, maestro, packages, deployment]
+draft: true
 ---
 
 ```{r}
@@ -28,15 +29,13 @@ asciicast::init_knitr_engine(
 )
 ```
 
-![](images/DALL·E%202024-06-24%2013.18.18%20-%20A%20very%20simple%20blueprint-style%20header%20image%20with%20a%20hand-drawn%20feel,%20focusing%20on%20music.%20Include%20only%20a%20single%20detailed%20sketch%20of%20a%20musical%20note.%20The%20bac.webp){fig-alt="Blueprint with a music note"}
+![](images/logo.png){fig-align="center"}
 
-I'm thrilled to announce the alpha release of [maestro](https://whipson.github.io/maestro/) - a new package for developing, scheduling, and monitoring data pipelines in R. Here, I'll walk through what maestro does and why you'd want to use it.
-
-Maestro is currently in its earliest stage of release and is not yet available on CRAN. It can be installed via Github like so:
+I'm thrilled to announce the CRAN release of [maestro](https://whipson.github.io/maestro/) - a new package for developing, scheduling, and monitoring data pipelines. Here, I'll walk through what maestro does and why you'd want to use it.
 
 ```{r}
 #| eval: false
-remotes::install_github("https://github.com/whipson/maestro")
+install.packages("maestro")
 ```
 
 ## The Motivation
@@ -281,3 +280,4 @@ That said, I think maestro is great for small-medium sized pipeline orchestratio
 #### Notes
 
 This post was created using `{r} R.version$version.string` and maestro version `{r} packageVersion("maestro")`.
+

@@ -1,0 +1,38 @@
+---
+title: "Many Data Pipelines on Posit Connect with Maestro"
+subtitle: How to deploy and monitor many data pipelines with maestro and Posit Connect
+author: "Will Hipson"
+date: "2024-06-24"
+date-modified: last-modified
+categories: [R, data engineering, data pipelines, orchestration, maestro, deployment, posit connect]
+---
+
+[Maestro](https://whipson.github.io/maestro/) is a package for scheduling, deploying, and monitoring data pipelines in a single project. Deploying maestro involves taking the project and automating it on some kind of schedule.
+
+[Posit Connect](https://posit.co/products/enterprise/connect/) is a platform for deploying and sharing data science content developed by Posit. Connect is primarily used to host content for people to interact with (i.e., reports, dashboards, etc). I think it's great for this purpose and we use it this way at the airport all the time. However, less well known is it can be used to run data pipelines and even act as a data repository.[^1] This is because you can schedule the execution of Quarto documents in Connect; and this means you can schedule the execution of any arbitrary R code to run. This blew my mind when I first realized it!
+
+[^1]: I hesitate to say 'database' because while it can store flat files (.csv and .parquet) it cannot be used to query them like in a true database.
+
+Here we'll look at a real world example of using maestro and Posit Connect together to deploy multiple data pipelines that automatically extract data from a source and store it in tables that accumulate data over time.
+
+## An Environmental Data Platform
+
+Sticking with examples I've used in previous posts, we'll use the open [API from Environment Canada](https://api.weather.gc.ca/openapi?f=html) for extracting data. We're going to create 3 data pipelines that are completely independent - it's just three different data sources going into 3 different tables:
+
+1.  Daily climate observations
+2.  Hourly climate observations
+3.  Real-time hydrometric data
+
+Each of these will be used in a maestro pipeline and then transformed data will be stored as a [pin](https://pins.rstudio.com/) in Posit Connect.
+
+## Maestro Project
+
+We'll need to install `maestro` from CRAN first.
+
+```{r}
+#| eval: false
+# install.packages("maestro")
+library(maestro)
+```
+
+You'll want to use maestro in a brand new R project. If you're in RStudio you can go to New Project \> Maestro Project, or you can run `create_maestro("environment-canada-pipelines", type = "Quarto")` and then navigate to that project.

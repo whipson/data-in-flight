@@ -1,6 +1,6 @@
 ---
 title: "Deploying a Maestro Project to Google Cloud Platform"
-subtitle: How to deploy a maestro project to GCP.
+subtitle: How to deploy a maestro project to GCP
 author: "Will Hipson"
 date: "2024-06-24"
 date-modified: last-modified
