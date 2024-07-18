@@ -1,0 +1,769 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>data-in-flight</title>
+<link>https://whipson.github.io/data-in-flight/#category=R</link>
+<atom:link href="https://whipson.github.io/data-in-flight/index-r.xml" rel="self" type="application/rss+xml"/>
+<description>scrappy data engineering</description>
+<generator>quarto-1.4.549</generator>
+<lastBuildDate>Mon, 24 Jun 2024 03:00:00 GMT</lastBuildDate>
+<item>
+  <title>Deploying a Maestro Project to Google Cloud Platform</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/maestro-gcp-deployment/maestro-gcp-deployment.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-gcp-deployment/images/DALL·E 2024-06-24 13.13.56 - A very simple blueprint-style header image with a hand-drawn feel. Include only a single detailed sketch of a light bulb. The background should be a d.webp" class="img-fluid" alt="Blueprint style image showing lightbulbs"></p>
+<p>In the previous post we saw how <code>maestro</code> helps orchestrate data pipelines in a single R project. For maestro to be useful you need to deploy it somewhere and these days that ‘somewhere’ is often cloud-based. Here we’ll walk through deploying a maestro project in the cloud on Google Cloud Platform (GCP).<sup>1</sup></p>
+<p>This post assumes some familiarity with the <code>maestro</code> package although the practice of deploying on GCP can be generalized to almost any project. The previous <a href="../../posts/hello-maestro/hello-maestro.html">blog post</a> walks through maestro specifically.</p>
+<p>This project is available on Github <a href="https://github.com/whipson/maestro_gcp">here</a>.</p>
+<section id="design" class="level2">
+<h2 class="anchored" data-anchor-id="design">Design</h2>
+<p>Like any cloud offering, GCP gives us many different ways to solve the same problem.<sup>2</sup> My suggested design is by no means the only way nor is it necessarily the best way. I strove for simplicity. In the end, I landed on 3 GCP services needed to deploy the project:</p>
+<ol type="1">
+<li>Cloud Build for hosting the containerized project.</li>
+<li>Cloud Run Jobs for executing the container.</li>
+<li>Cloud Scheduler for scheduling the container to run.</li>
+</ol>
+<p>The most complicated of these is the first step and requires some familiarity with Docker (and ideally Github).</p>
+</section>
+<section id="dockerizing-maestro" class="level2">
+<h2 class="anchored" data-anchor-id="dockerizing-maestro">Dockerizing Maestro</h2>
+<p>The best way to ensure that our maestro project runs in the cloud with all its dependencies is to use Docker. Docker is widespread in software development these days and is practically a requirement for deploying anything. I won’t go over the fundamentals of Docker here (Alex Gold’s <em>DevOps for Data Science</em> has a <a href="https://do4ds.com/chapters/sec1/1-6-docker.html">Demystifying Docker</a> chapter that is very helpful if you’re new or rusty with Docker).</p>
+<p>We need to create a <code>Dockerfile</code> at the root level of the project. I used <code>dockerfiler</code> for this. It has a function <code>dock_from_renv()</code> and it got me about 90% of the way there. As implied in the name you need to be using <code>renv</code>.<sup>3</sup></p>
+<p>After using dockerfiler to generate the Dockerfile, I made some necessary tweaks. The main thing is to add a few system libraries and to add the <code>ENTRYPOINT ["Rscript", "orchestrator.R"]</code> so that Google Cloud Run knows to execute that script:</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode dockerfile code-with-copy"><code class="sourceCode dockerfile"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Dockerfile</span></span>
+<span id="cb1-2"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">FROM</span> rocker/r-ver</span>
+<span id="cb1-3"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">RUN</span> <span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">apt-get</span> update <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">apt-get</span> install <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-y</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb1-4">    libxml2-dev <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb1-5">    libcurl4-openssl-dev <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb1-6">    libssl-dev <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb1-7">    libsodium-dev <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb1-8">    zlib1g-dev <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb1-9">    pkg-config <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb1-10">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rm</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-rf</span> /var/lib/apt/lists/<span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">*</span></span>
+<span id="cb1-11"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">RUN</span> <span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">R</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-e</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'install.packages("remotes")'</span></span>
+<span id="cb1-12"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">RUN</span> <span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">R</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-e</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'remotes::install_version("renv", version = "1.0.7")'</span></span>
+<span id="cb1-13"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">WORKDIR</span> /usr/src/app</span>
+<span id="cb1-14"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">COPY</span> . .</span>
+<span id="cb1-15"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">RUN</span> <span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">R</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-e</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'renv::restore()'</span></span>
+<span id="cb1-16"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">ENTRYPOINT</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Rscript"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orchestrator.R"</span>]</span></code></pre></div>
+<p>I also had to add some system libraries (<code>libcurl4-openssl-dev</code> for making the API requests). This part is a bit tedious and will depend on your situation. For instance, if you’re doing anything geospatial you may need lib-gdal. ChatGPT was pretty helpful when I ran into errors building my docker image.</p>
+<p>This leads us to the next step: building the image and testing it in a container locally. This is where you can debug problems before you go to deploy to GCP.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">docker</span> build <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-t</span> maestro_gcp .</span>
+<span id="cb2-2"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">docker</span> run maestro_gcp <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--rm</span></span></code></pre></div>
+</div>
+</section>
+<section id="creating-a-cloudbuild.yaml" class="level2">
+<h2 class="anchored" data-anchor-id="creating-a-cloudbuild.yaml">Creating a cloudbuild.yaml</h2>
+<p>The cloudbuild.yaml is a configuration file for telling GCP what image to use and how to build it. Think of it as the link connecting your project to the place where the docker image will live in GCP. Full confession: ChatGPT helped me with this one:</p>
+<pre><code>steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maestro-gcp', '.']
+images:
+- 'gcr.io/$PROJECT_ID/maestro-gcp'
+options:
+  logging: CLOUD_LOGGING_ONLY</code></pre>
+<p>Name this file <code>cloudbuild.yaml</code> and add it to the root level of your project. At this point, you should have a project structure that looks something like this:</p>
+<pre><code>.
+├── Dockerfile
+├── cloudbuild.yaml
+├── maestro-gcp-deploy.Rproj
+├── orchestrator.R
+├── pipelines
+├── renv
+└── renv.lock</code></pre>
+</section>
+<section id="hosting-the-container-on-gcp" class="level2">
+<h2 class="anchored" data-anchor-id="hosting-the-container-on-gcp">Hosting the Container on GCP</h2>
+<p>The great thing about Cloud Build is you can host a project with a Dockerfile on Github and deploy it to GCP from there.</p>
+<p>Create the Github repo and push the project code there. Then, in the GCP console and, inside of Cloud Build &gt; Triggers, select Connect Repository.</p>
+<p>Once you open the Connect Repository wizard and select Github, it’ll step you through some authentication.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-gcp-deployment/images/gcp-build-success.png" class="img-fluid figure-img" alt="Screenshot of GCP Console showing successful cloud build."></p>
+<figcaption>Successful Cloud Build in GCP Console.</figcaption>
+</figure>
+</div>
+</section>
+<section id="create-cloud-job-run" class="level2">
+<h2 class="anchored" data-anchor-id="create-cloud-job-run">Create Cloud Job Run</h2>
+<p>If your build was successful, congrats! You made it through the hardest part. We now go to Cloud Run Jobs.<sup>4</sup> Go to Create Job and browse through to find your recently build container.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-gcp-deployment/images/gcp-cloud-run-create.png" class="img-fluid figure-img" alt="Create Job wizard in GCP Console."></p>
+<figcaption>Create Job wizard in GCP Console.</figcaption>
+</figure>
+</div>
+<p>You may also want to select the box to ‘Execute job immediately’ to test that the container runs as expected.</p>
+</section>
+<section id="schedule-it" class="level2">
+<h2 class="anchored" data-anchor-id="schedule-it">Schedule It</h2>
+<p>We can stay right within the Cloud Run service to do the scheduling even though it is handled by Google Cloud Scheduler.</p>
+<p>Click on your newly created job and then on Triggers &gt; Add Scheduler Trigger:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-gcp-deployment/images/gcp-schedule-create.png" class="img-fluid figure-img" alt="GCP Console showing Cloud Scheduler job."></p>
+<figcaption>Adding a scheduler trigger to the cloud job.</figcaption>
+</figure>
+</div>
+<p>The Frequency input uses cron syntax. You can use <a href="https://crontab.guru/">Crontab</a> to help specify the schedule. When it’s created you should see something below like this:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-gcp-deployment/images/gcp-trigger-created.png" class="img-fluid figure-img" alt="Screenshot of GCP Console showing successfully created scheduler job."></p>
+<figcaption>Successfully created cron schedule for Cloud Run Job.</figcaption>
+</figure>
+</div>
+<p>I like to trigger the job manually too to see how it runs, or you can just wait until the schedule kicks in.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-gcp-deployment/images/gcp-logs.png" class="img-fluid figure-img" alt="Screenshot of the GCP console showing the successful run of a scheduled job."></p>
+<figcaption>Logs of the cloud run job.</figcaption>
+</figure>
+</div>
+</section>
+<section id="final-remarks" class="level2">
+<h2 class="anchored" data-anchor-id="final-remarks">Final Remarks</h2>
+<p>And that about sums it up for the deployment. Cloud deployment is almost never a straightforward process, so be prepared for some failed attempts. I relied on ChatGPT when I ran into problems. My organization gives us access to ChatGPT 4o and it seems to have an excellent grasp of GCP. It tends to provide command line instructions rather than point-click in the GCP console, but this is for your benefit - it’s more reproducible and stable.</p>
+
+
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Why GCP and not AWS or Azure? We chose GCP for this initial post on deployment for two reasons. First is it has always free tiers for commonly used services. For lightweight use cases, you won’t have to worry about incurring a cloud bill. Another reason is I’ve found the learning curve for GCP much gentler compared to AWS and Azure. In general, GCP is much better at helping you do what you need to do at very little to no cost (for lightweight jobs).↩︎</p></li>
+<li id="fn2"><p>Cloud providers are great at packaging the same fundamental activity in a million different ways. Try not to get overwhelmed with all the different services in GCP. Usually you’ll only ever make use of a few of the most common ones. Everything comes down to compute and storage.↩︎</p></li>
+<li id="fn3"><p>Yes, I realize this may feel like a lot before we’ve even made it to GCP. While Docker and renv create additional work (and often frustration) up front, it truly is more beneficial when it comes to the actual deployment. Without Docker, setting up the runtime is an especially painful game of whack-a-mole. This doesn’t mean you won’t have to whack a few moles first though.↩︎</p></li>
+<li id="fn4"><p>Make sure you choose Create Job and not Create Service. Services listen for HTTP requests whereas jobs can be triggered by a cron schedule.↩︎</p></li>
+</ol>
+</section></div> ]]></description>
+  <category>R</category>
+  <category>data engineering</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>deployment</category>
+  <category>cloud</category>
+  <category>tutorial</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/maestro-gcp-deployment/maestro-gcp-deployment.html</guid>
+  <pubDate>Mon, 24 Jun 2024 03:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Hello maestro</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/hello-maestro/hello-maestro.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/hello-maestro/images/logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></p>
+</figure>
+</div>
+<p>I’m thrilled to announce the develop release of <code>maestro</code> a new package for developing, scheduling, and monitoring data pipelines. Here, I’ll walk through what maestro does and why you’d want to use it.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1">remotes<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">install_github</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://github.com/whipson/maestro"</span>)</span></code></pre></div>
+</div>
+<section id="the-motivation" class="level2">
+<h2 class="anchored" data-anchor-id="the-motivation">The Motivation</h2>
+<p>Let’s start with the <em>why</em>. Data engineers often have to manage multiple data pipelines - dozens or maybe even hundreds of pipelines. Scheduling and monitoring these pipelines in production poses challenges, particularly as the number of pipelines increases. Maestro takes a holistic approach by managing multiple independent pipelines in a single R project.<sup>1</sup> No need to maintain several R projects or use bulky orchestration tools.</p>
+</section>
+<section id="one-orchestrator-many-pipelines" class="level2">
+<h2 class="anchored" data-anchor-id="one-orchestrator-many-pipelines">One Orchestrator, Many Pipelines</h2>
+<p>There are two components to a maestro project: an orchestrator and a collection of pipelines. A pipeline is a function that performs a task, such as extracting data and then storing it somewhere. The goal of maestro is to manage (i.e., schedule and monitor) multiple pipelines. This is done using an orchestrator script. The orchestrator script runs maestro commands like <code>build_schedule()</code> and <code>run_schedule()</code> to execute the pipelines and monitor them.</p>
+</section>
+<section id="getting-started" class="level2">
+<h2 class="anchored" data-anchor-id="getting-started">Getting Started</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span></code></pre></div>
+</div>
+<p>It is best to use maestro in an R project. After installing the package, you can create a new project using <code>create_maestro()</code> or in RStudio &gt; New Project &gt; Maestro Project. You’ll find yourself in an R project with a structure like this:</p>
+<pre><code>my_project_directory
+├── orchestrator.R
+└── pipelines
+    └── my_pipe.R</code></pre>
+<section id="our-first-pipeline" class="level3">
+<h3 class="anchored" data-anchor-id="our-first-pipeline">Our First Pipeline</h3>
+<p>Let’s take a look at <code>my_pipe.R</code> that was created:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' my_pipe maestro pipeline</span></span>
+<span id="cb4-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#'</span></span>
+<span id="cb4-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 day</span></span>
+<span id="cb4-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2024-06-03</span></span>
+<span id="cb4-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroTz UTC</span></span>
+<span id="cb4-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroLogLevel INFO</span></span>
+<span id="cb4-7"></span>
+<span id="cb4-8">my_pipe <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">function</span>() {</span>
+<span id="cb4-9"></span>
+<span id="cb4-10">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Pipeline code</span></span>
+<span id="cb4-11">}</span></code></pre></div>
+</div>
+<p>The script has been populated with R code to assign a function called my_pipe. The function has no code in the body so it won’t do anything just yet. Above the function declaration are some specially formatted code comments. These are maestro tags and they’re used to configure the scheduling and operation of the pipeline.<sup>2</sup></p>
+<p>The tags most important for scheduling are <code>maestroFrequency</code> and <code>maestroStartTime</code>. <code>maestroFrequency</code> is how often to run the pipeline. It takes a number and a time unit, like 1 day, 3 hours, 15 minutes, or 6 months. <code>maestroStartTime</code> is a Date (yyyy-mm-dd) or timestamp (yyyy-mm-dd HH:MM:SS) indicating when the schedule starts.</p>
+<p>Configuring the start time is important if you have specific times you want it to run. If, for example, you want the pipeline to run once daily at 12:30, you’d use <code>@maestroStartTime 2024-06-03 12:00:00</code> (note here that the date part doesn’t matter unless you schedule it in the future).</p>
+<p>We won’t concern ourselves with the other tags for now; just know that there are more and they all have default values.</p>
+<p>Now let’s get the pipeline to do something. In the spirit of typical data engineering tasks, we’ll create an ETL (Extract, Transform, Load) pipeline that gets data from a source, transforms it by adding a new column, and loads it into storage.</p>
+</section>
+<section id="making-a-useful-pipeline" class="level3">
+<h3 class="anchored" data-anchor-id="making-a-useful-pipeline">Making a Useful Pipeline</h3>
+<p>We’ll use the open API from Environment Canada called <a href="https://api.weather.gc.ca/openapi?f=html">Geomet</a> for meteorological data and we’ll use DuckDB for storage. We’ll need the <code>httr2</code> and <code>duckdb</code> packages for extraction and storage, respectively.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' Located in ./pipelines/my_pipe.R</span></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 day</span></span>
+<span id="cb5-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2024-06-03</span></span>
+<span id="cb5-4">geomet_stations <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">function</span>() {</span>
+<span id="cb5-5">  </span>
+<span id="cb5-6">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Formulate the request  </span></span>
+<span id="cb5-7">  req <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">request</span>(</span>
+<span id="cb5-8">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://api.weather.gc.ca/collections/climate-stations/items"</span></span>
+<span id="cb5-9">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb5-10">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_url_query</span>(</span>
+<span id="cb5-11">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limit =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>,</span>
+<span id="cb5-12">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">skipGeometry =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb5-13">    )</span>
+<span id="cb5-14">  </span>
+<span id="cb5-15">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Send the request and interpret the response</span></span>
+<span id="cb5-16">  resp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> req <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb5-17">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_perform</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb5-18">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">resp_body_json</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">simplifyVector =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb5-19">  </span>
+<span id="cb5-20">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get the properties element where the rectangular data is located</span></span>
+<span id="cb5-21">  stations_dat <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> resp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>features<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>properties</span>
+<span id="cb5-22">  </span>
+<span id="cb5-23">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Clean the names</span></span>
+<span id="cb5-24">  stations_clean <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> stations_dat <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb5-25">    janitor<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">clean_names</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb5-26">    janitor<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">remove_empty</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">which =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rows"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cols"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb5-27">    dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb5-28">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">insert_time =</span> lubridate<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">now</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">tzone =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"UTC"</span>)</span>
+<span id="cb5-29">    )</span>
+<span id="cb5-30">  </span>
+<span id="cb5-31">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Connect to a local in-memory duckdb</span></span>
+<span id="cb5-32">  conn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(duckdb<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">duckdb</span>())</span>
+<span id="cb5-33">  </span>
+<span id="cb5-34">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create and write to a table</span></span>
+<span id="cb5-35">  DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbWriteTable</span>(</span>
+<span id="cb5-36">    conn, </span>
+<span id="cb5-37">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geomet_stations_transactional"</span>, </span>
+<span id="cb5-38">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value =</span> stations_clean</span>
+<span id="cb5-39">  )</span>
+<span id="cb5-40">  </span>
+<span id="cb5-41">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Test that it worked in the return</span></span>
+<span id="cb5-42">  res <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbGetQuery</span>(</span>
+<span id="cb5-43">    conn, </span>
+<span id="cb5-44">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">statement =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb5-45"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    select * from geomet_stations_transactional</span></span>
+<span id="cb5-46"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    order by insert_time desc</span></span>
+<span id="cb5-47"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    limit 10</span></span>
+<span id="cb5-48"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    "</span></span>
+<span id="cb5-49">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb5-50">    dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as_tibble</span>()</span>
+<span id="cb5-51">  </span>
+<span id="cb5-52">  DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(conn)</span>
+<span id="cb5-53">  </span>
+<span id="cb5-54">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(</span>
+<span id="cb5-55">    res</span>
+<span id="cb5-56">  )</span>
+<span id="cb5-57">}</span></code></pre></div>
+</div>
+</section>
+<section id="orchestrate-it" class="level3">
+<h3 class="anchored" data-anchor-id="orchestrate-it">Orchestrate It</h3>
+<p>Now that we have a single useful pipeline, let’s orchestrate it (in practice, we’d probably have more than one pipeline). We’ll set the orchestrator to run at a daily frequency (this does not actually cause it to run daily, we need something else external to the R project to actually run it). For testing purposes, we’ll then run this interactively:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Located in ./orchestrator.R</span></span>
+<span id="cb6-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span>
+<span id="cb6-3"></span>
+<span id="cb6-4">schedule <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">build_schedule</span>()</span>
+<span id="cb6-5"></span>
+<span id="cb6-6">orch_result <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_schedule</span>(</span>
+<span id="cb6-7">  schedule,</span>
+<span id="cb6-8">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"1 day"</span></span>
+<span id="cb6-9">)</span></code></pre></div>
+<div class="asciicast" style="color: #B9C0CB;font-family: 'Fira Code',Monaco,Consolas,Menlo,'Bitstream Vera Sans Mono','Powerline Symbols',monospace;line-height: 1.300000">
+<pre><span style="color: #66C2CD;">ℹ</span> 1 script successfully parsed                                                  
+                                                                                
+── Running pipelines <span style="color: #A8CC8C;">▶</span>                                                          
+<span style="color: #A8CC8C;">✔</span> <span style="color: #6F7783;">./pipelines/my_pipe.R</span> <span style="color: #71BEF2;">geomet_stations</span> <span style="color: #b8b8b8;">[749ms]</span>                                 
+                                                                                
+── Pipeline execution completed <span style="color: #6F7783;">■</span> | 0.761 sec elapsed                           
+<span style="color: #A8CC8C;">✔</span> 1 success | <span style="color: #282D35;">→</span> 0 skipped | <span style="color: #D290E4;">!</span> 0 warnings | <span style="color: #E88388;">✖</span> 0 errors | <span style="color: #66C2CD;">◼</span> 1 total               
+────────────────────────────────────────────────────────────────────────────────
+                                                                                
+── Next scheduled pipelines <span style="color: #66C2CD;">❯</span>                                                   
+Pipe name | Next scheduled run                                                  
+• geomet_stations | 2024-06-21                                                  
+</pre>
+</div>
+</div>
+</section>
+<section id="what-we-get-back" class="level3">
+<h3 class="anchored" data-anchor-id="what-we-get-back">What we get back</h3>
+<p>We can see from the console output that the pipeline ran successfully. If we save it to a variable we get back a list with elements called and <code>status</code> and <code>artifacts</code>.</p>
+<section id="status" class="level4">
+<h4 class="anchored" data-anchor-id="status">$status</h4>
+<p>The <code>$status</code> element is a data.frame where each row is a pipeline. It has information about the status and runtime of each pipeline.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1">orch_result<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>status</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 10
+  pipe_name  script_path invoked success pipeline_started    pipeline_ended     
+  &lt;chr&gt;      &lt;chr&gt;       &lt;lgl&gt;   &lt;lgl&gt;   &lt;dttm&gt;              &lt;dttm&gt;             
+1 geomet_st… ./pipeline… TRUE    TRUE    2024-06-19 14:50:51 2024-06-19 14:50:51
+# ℹ 4 more variables: errors &lt;int&gt;, warnings &lt;int&gt;, messages &lt;int&gt;,
+#   next_run &lt;dttm&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="artifacts" class="level4">
+<h4 class="anchored" data-anchor-id="artifacts">$artifacts</h4>
+<p><code>$artifacts</code> is where any return values from the pipelines will be. In our case, it’s the test sample of data inserted into the table:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1">orch_result<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>artifacts[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]]</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 33
+   wmo_identifier   longitude fre_stn_operator_name                 display_code
+   &lt;chr&gt;                &lt;int&gt; &lt;chr&gt;                                        &lt;int&gt;
+ 1 &lt;NA&gt;           -1114200000 &lt;NA&gt;                                             8
+ 2 &lt;NA&gt;           -1140700000 &lt;NA&gt;                                             4
+ 3 &lt;NA&gt;           -1114500000 &lt;NA&gt;                                             9
+ 4 &lt;NA&gt;           -1120200000 &lt;NA&gt;                                             4
+ 5 &lt;NA&gt;           -1105000000 &lt;NA&gt;                                             6
+ 6 71634           -653552000 Environnement et Changement climatiq…           NA
+ 7 &lt;NA&gt;            -633931040 &lt;NA&gt;                                            NA
+ 8 &lt;NA&gt;            -640340090 Réseau coopératif de stations climat…           NA
+ 9 71603           -660517000 NAV Canada                                      NA
+10 71706           -630709000 NAV Canada                                      NA
+# ℹ 29 more variables: eng_stn_operator_acronym &lt;chr&gt;,
+#   fre_stn_operator_acronym &lt;chr&gt;, mly_first_date &lt;chr&gt;, hly_first_date &lt;chr&gt;,
+#   fre_prov_name &lt;chr&gt;, country &lt;chr&gt;, climate_identifier &lt;chr&gt;,
+#   publication_code &lt;int&gt;, timezone &lt;chr&gt;, last_date &lt;chr&gt;,
+#   hly_last_date &lt;chr&gt;, has_hourly_data &lt;chr&gt;, elevation &lt;chr&gt;, stn_id &lt;int&gt;,
+#   dly_first_date &lt;chr&gt;, dly_last_date &lt;chr&gt;, eng_stn_operator_name &lt;chr&gt;,
+#   station_name &lt;chr&gt;, eng_prov_name &lt;chr&gt;, mly_last_date &lt;chr&gt;, …</code></pre>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="deployment" class="level2">
+<h2 class="anchored" data-anchor-id="deployment">Deployment</h2>
+<p>Ok, so we ran the orchestrator interactively, but this is only useful for testing. In practice, we want to deploy this on a server and have it run every day. To be clear: maestro does <em>not</em> do this for you - it just assumes that you are doing this and behaves accordingly. In other words, when you declare <code>orch_frequency = "1 day"</code> you are saying that you <em>intend</em> to run the orchestrator every 1 day.</p>
+<p>The first decision to make about deployment is local vs.&nbsp;cloud. If you own the server it’s local<sup>3</sup>, if you rent the hardware and connect to it remotely it’s cloud. Here, we’ll run through a straightforward local deployment because it requires less configuration and won’t cost you anything.</p>
+<section id="maclinux-cronr" class="level4">
+<h4 class="anchored" data-anchor-id="maclinux-cronr">Mac/Linux: cronR</h4>
+<p>Cron is a job scheduler for the Mac/Linux systems. You can use <code>cronR</code> to interface with it via R.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(cronR)</span>
+<span id="cb11-2"></span>
+<span id="cb11-3">cmd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cron_rscript</span>(</span>
+<span id="cb11-4">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orchestrator.R"</span>, </span>
+<span id="cb11-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">workdir =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">getwd</span>()</span>
+<span id="cb11-6">)</span>
+<span id="cb11-7"></span>
+<span id="cb11-8"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cron_add</span>(</span>
+<span id="cb11-9">  cmd, </span>
+<span id="cb11-10">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"daily"</span>,</span>
+<span id="cb11-11">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">id =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"maestro"</span>,</span>
+<span id="cb11-12">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ask =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb11-13">)</span></code></pre></div>
+</div>
+</section>
+<section id="windows-taskscheduler" class="level4">
+<h4 class="anchored" data-anchor-id="windows-taskscheduler">Windows: taskscheduleR</h4>
+<p>Windows users can use <code>taskscheduleR</code> to schedule a job via R:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(taskscheduleR)</span>
+<span id="cb12-2"></span>
+<span id="cb12-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">taskscheduler_create</span>(</span>
+<span id="cb12-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">taskname =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"maestro"</span>, </span>
+<span id="cb12-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">rscript =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orchestrator.R"</span>, </span>
+<span id="cb12-6">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">schedule =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"DAILY"</span>,</span>
+<span id="cb12-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">exec_path =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">getwd</span>()</span>
+<span id="cb12-8">)</span></code></pre></div>
+</div>
+</section>
+</section>
+<section id="final-remarks" class="level2">
+<h2 class="anchored" data-anchor-id="final-remarks">Final Remarks</h2>
+<p>In this post, we saw how maestro can be used to orchestrate multiple pipelines in a single R project. Maestro is in its early development, but I encourage you to try it out. We’re using it in production to orchestrate 18 production pipelines at the Halifax International Airport!</p>
+<p>I’d be remiss not to mention a few caveats of maestro:</p>
+<ol type="1">
+<li>It should only be used for light-medium scale batch jobs. If you need to do streaming and/or heavy load jobs, it’s probably not for you.</li>
+<li>Configuring the schedule for the orchestrator requires some thought. If you have several pipelines at different intervals and times you’ll want to choose a frequency that makes sense. You can use <code>suggest_orch_frequency()</code> to get a heuristic suggestion based on a schedule. Even then - you need to make sure you actually run the orchestrator at this frequency. Weird things happen if your orchestrator actually runs more or less frequently than you said it would.</li>
+</ol>
+<p>That said, I think maestro is great for small-medium sized pipeline orchestration. If you’re looking to deploy maestro on the cloud, this <a href="../../posts/maestro-gcp-deployment/maestro-gcp-deployment.html">blog post</a> will help you get started in Google Compute Platform (GCP).</p>
+<section id="notes" class="level4">
+<h4 class="anchored" data-anchor-id="notes">Notes</h4>
+<p>This post was created using R version 4.3.3 (2024-02-29) and maestro version 0.1.1.</p>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>A popular R package for data pipelines that has been around for some time is <a href="https://docs.ropensci.org/targets/">targets</a>. Maestro is different from targets in that the focus of maestro is to orchestrate multiple <em>independent</em> data pipelines whereas targets is for a single connected pipeline. Maestro would be more suited toward ETL data engineering where targets is for complex analytics pipelines.↩︎</p></li>
+<li id="fn2"><p>R users will recognize that maestro uses custom <a href="https://roxygen2.r-lib.org/">roxygen2</a> tags.↩︎</p></li>
+<li id="fn3"><p>Yes, this includes your personal laptop or desktop; however, it probably goes to sleep when not used. If you’re using a Mac, you can use <code>pmset</code> in the command line to get around this (<a href="https://www.dssw.co.uk/reference/pmset/" class="uri">https://www.dssw.co.uk/reference/pmset/</a>).↩︎</p></li>
+</ol>
+</section></div> ]]></description>
+  <category>R</category>
+  <category>data engineering</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>packages</category>
+  <category>deployment</category>
+  <category>release</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/hello-maestro/hello-maestro.html</guid>
+  <pubDate>Wed, 19 Jun 2024 03:00:00 GMT</pubDate>
+</item>
+</channel>
+</rss>
