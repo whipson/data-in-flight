@@ -4,7 +4,7 @@ subtitle: How to deploy a maestro project to GCP
 author: "Will Hipson"
 date: "2024-06-24"
 date-modified: last-modified
-categories: [R, data engineering, data pipelines, orchestration, maestro, deployment, cloud]
+categories: [R, data engineering, data pipelines, orchestration, maestro, deployment, cloud, tutorial]
 knitr: true
 ---
 

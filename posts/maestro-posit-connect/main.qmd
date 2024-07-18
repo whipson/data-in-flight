@@ -4,7 +4,8 @@ subtitle: How to deploy and monitor many data pipelines with maestro and Posit C
 author: "Will Hipson"
 date: "2024-06-24"
 date-modified: last-modified
-categories: [R, data engineering, data pipelines, orchestration, maestro, deployment, posit connect]
+categories: [R, data engineering, data pipelines, orchestration, maestro, deployment, posit connect, tutorial]
+draft: true
 ---
 
 [Maestro](https://whipson.github.io/maestro/) is a package for scheduling, deploying, and monitoring data pipelines in a single project. Deploying maestro involves taking the project and automating it on some kind of schedule.
@@ -36,3 +37,101 @@ library(maestro)
 ```
 
 You'll want to use maestro in a brand new R project. If you're in RStudio you can go to New Project \> Maestro Project, or you can run `create_maestro("environment-canada-pipelines", type = "Quarto")` and then navigate to that project.
+
+We'll have a project structure like this:
+
+```         
+environment-canada-pipelines
+├── environment-canada-pipelines.Rproj
+├── orchestrator.R
+└── pipelines
+    └── my_pipe.R
+```
+
+## Creating the pipelines
+
+Let's replace `my_pipe.R` with some code to extract, transform, and load data from one of the environmental APIs.
+
+```{r}
+#| eval: false
+#' climate_hourly maestro pipeline
+#'
+#' @maestroFrequency 1 day
+#' @maestroStartTime 2024-06-25 01:00:00
+#' @maestroTz America/Halifax
+#' @maestroLogLevel INFO
+climate_hourly <- function(board) {
+
+  last_full_day <- lubridate::today() - lubridate::days(1)
+  last_full_day_fmt <- format(last_full_day, "%Y-%m-%dT%H:%M:%SZ")
+
+  # Request to get climate observations for the last full hour
+  req <- httr2::request("https://api.weather.gc.ca/collections/climate-hourly/items") |>
+    httr2::req_url_query(
+      CLIMATE_IDENTIFIER = 8202251, # corresponds with Halifax Int'l Airport
+      datetime = paste0(last_full_day_fmt, "/.."),
+      skipGeometry = TRUE,
+      LIMIT = 1000
+    )
+
+  resp <- req |>
+    httr2::req_perform() |>
+    httr2::resp_body_json(simplifyVector = TRUE)
+
+  df_raw <- resp$features$properties
+
+  df_proc <- df_raw |>
+    janitor::clean_names() |>
+    dplyr::mutate(
+      insert_time = lubridate::now(tzone = "UTC")
+    )
+
+  # Using a custom function for reading, appending, and writing in a single step
+  pin_append(
+    board,
+    df_proc,
+    name = "climate_hourly_transactional",
+    type = "parquet"
+  )
+}
+```
+
+Note the use of maestro tags to specify the scheduling. Even though the source is hourly climate, the data only updates daily, allowing us to get a previous full day's worth of hourly climate readings for a particular station.
+
+Note too that the function `climate_hourly` - our pipeline - takes an argument called `board`. This is to allow us to pass the Posit Connect board to the functions that will read and write to the table in Posit Connect. We'll see later how to use maestro to pass this to the pipeline.
+
+### Pins as database tables
+
+I won't go too in depth on pins here, suffice it to say that a pin is simply a file and we can store it in Posit Connect. We want to treat our data pins as database tables where we append new rows on top of existing ones. So the process will be read in the existing table and write out the table with the appended rows. I've encapsulated these steps in a single function called pin_append:
+
+```{r}
+#' Reads a pin (creates if not existing) appends new rows and 
+#' writes it back to the same pin 
+pin_append <- function(board, x, name, type = "parquet") {
+
+  existing <- tryCatch({
+    pins::pin_read(
+      board,
+      name
+    )
+  }, error = \(e) {
+    warning("Pin '", name, "' does not exist. Creating.")
+    return(NULL)
+  })
+
+  new <- dplyr::bind_rows(x, existing)
+
+  tryCatch({
+    pins::pin_write(
+      board,
+      new,
+      name = name,
+      type = type
+    )
+  }, error = \(e) {
+    stop("Failed to append to pin '", name, "'")
+  })
+}
+```
+
+We'll use this function repeatedly throughout the project, so I'll put it in a folder called R.

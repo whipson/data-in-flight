@@ -1,12 +1,9 @@
-box::use(
-  dplyr[bind_rows],
-  pins[pin_read, pin_write]
-)
-
+#' Reads a pin (creates if not existing) appends new rows and
+#' writes it back to the same pin
 pin_append <- function(board, x, name, type = "parquet") {
 
   existing <- tryCatch({
-    pin_read(
+    pins::pin_read(
       board,
       name
     )
@@ -15,10 +12,10 @@ pin_append <- function(board, x, name, type = "parquet") {
     return(NULL)
   })
 
-  new <- bind_rows(x, existing)
+  new <- dplyr::bind_rows(x, existing)
 
   tryCatch({
-    pin_write(
+    pins::pin_write(
       board,
       new,
       name = name,

@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Will Hipson">
-<meta name="dcterms.date" content="2024-05-24">
+<meta name="dcterms.date" content="2024-07-18">
 
-<title>data-in-flight - Prepare for Takeoff</title>
+<title>data-in-flight - The Data Decontamination Mindset</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -120,9 +120,13 @@ ul.task-list li input[type="checkbox"] {
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Prepare for Takeoff</h1>
+      <h1 class="title">The Data Decontamination Mindset</h1>
+            <p class="subtitle lead">Why you should assume your organization’s data is radioactive</p>
                                 <div class="quarto-categories">
-                <div class="quarto-category">news</div>
+                <div class="quarto-category">data cleaning</div>
+                <div class="quarto-category">data engineering</div>
+                <div class="quarto-category">ingestion</div>
+                <div class="quarto-category">opinion</div>
               </div>
                   </div>
   </div>
@@ -140,14 +144,14 @@ ul.task-list li input[type="checkbox"] {
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">May 24, 2024</p>
+        <p class="date">July 18, 2024</p>
       </div>
     </div>
     
       <div>
       <div class="quarto-title-meta-heading">Modified</div>
       <div class="quarto-title-meta-contents">
-        <p class="date-modified">July 11, 2024</p>
+        <p class="date-modified">July 18, 2024</p>
       </div>
     </div>
       
@@ -165,14 +169,76 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<p><img src="images/DALL·E 2024-06-24 13.19.34 - A very simple blueprint-style header image with a hand-drawn feel, focusing on an airplane. Include only a single detailed sketch of an airplane. The .webp" class="img-fluid" alt="Blueprint with an airplane"></p>
-<p>My new blog <em>Data In Flight</em> is about sharing my experiences working with real data on a small scale. In my experience I’ve found that exciting things happen when you have small-medium sized data and an even smaller budget. Most people don’t need the latest and greatest VC backed data platform, despite what tech influencers on LinkedIn say.</p>
-<p>This blog is about scrappy data engineering with a team of one (or at most a number countable on a single hand). My natural inclination is to use R for everything so most of the code-related content in this blog will be in R.</p>
-<p>Nothing here is intended to be polished or the final word (a near impossibility in a rapidly changing field). It’s about the journey and not the destination.</p>
+<p>Data engineers deal with data from a variety of sources. Typically, you have very little control over these sources. Best case scenario is the data comes from an API that guarantees schema consistency and data quality to some degree. I love it when data is provided this way - it makes my little data engineer’s heart sing.</p>
+<p>Increasingly, however, I’ve come across scenarios in our organization where people (non data-savvy folks) want their data to ingested in our data platform so that it can be integrated with downstream pipelines and applications. I’m all for this because it means our data platform is being used by people other than myself (and machine users). But it introduces data quality issues that you probably didn’t think about before - at least not when you’ve only been pulling data from a pristine third party API.</p>
+<p>Here I want to explain my new way of thinking about data that comes from within your own organization. This way of thinking states that you should treat all data that comes from people in your organization as contaminated. Radioactive. Not to be trusted. I call this the <em>data decontamination mindset</em>.</p>
+<section id="the-situation-let-the-people-write" class="level2">
+<h2 class="anchored" data-anchor-id="the-situation-let-the-people-write">The Situation: Let the people write!</h2>
+<p>At the airport, we’re still in the early stages of rolling out a self-serve data platform for the organization. It’s mostly used internally so that people can do BI stuff. When we launched the platform, it didn’t really take off as expected. People were reluctant to self-serve<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. Instead, they wanted to be able to write their own data to the data warehouse. There were two main reasons for this:</p>
+<ol type="1">
+<li>Sharing data with the organization in a more centralized location.</li>
+<li>Setting up a pipeline where they deposit their data somewhere (e.g., Dropbox, Sharepoint, etc.) and it’s automatically ingested and transformed to be more useful for them.</li>
+</ol>
+<p>We certainly weren’t going to allow users free reign to create tables at their whim. But it made sense to have some way for people to contribute so long as it was relevant to the business.</p>
+<p>The problem was <em>their data was messy.</em></p>
+<p>It was messy in ways that we never expected it to be. Specifically, there were duplicate records everywhere; but we didn’t check for this and it got entered into the platform anyway and it was only some time later that we uncovered it. Had we checked for problems at the outset we could’ve saved time and headaches.</p>
+<p>And for this reason, I changed the way I think about data coming from inside the business. I had to view it as contaminated by default.</p>
+</section>
+<section id="symptoms-of-contaminated-data" class="level2">
+<h2 class="anchored" data-anchor-id="symptoms-of-contaminated-data">Symptoms of Contaminated Data</h2>
+<p>Contaminated data is another term for messy data, but I think the term ‘contaminated’ helps us to think more critically about what data we allow into our data warehouses. What I call the symptoms of contaminated data are nothing new to anyone who’s thought about data quality<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. Some symptoms are more problematic than others. Among the most egregious are the following:</p>
+<ol type="1">
+<li>Duplicated records</li>
+<li>All NA/NULL rows or columns (an indication of non-rectangular data)</li>
+<li>Inconsistent date/datetime formatting (e.g., 2024-07-10, 08-10-24, …)</li>
+</ol>
+<p>These are immediate cause for concern because they put into question the accuracy of the data.</p>
+<p>Other less obvious markers of contamination of the following:</p>
+<ol start="4" type="1">
+<li>Constant columns (e.g., all values are 0)</li>
+<li>Character columns that are almost entirely numeric (could indicate a typo like 1O instead of 10)</li>
+<li>Non human-readable column names<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></li>
+</ol>
+<p>All these symptoms are typically caused by manual data entry in Excel spreadsheets. We’ve found that people outside of the data team understand their side of the business extremely well, but they unfortunately tend to conflate raw data with presentation. For instance, we regularly see Excel sheets using colours to convey information, the use of summary rows, and metadata/statistics calculated in cells located outside the rectangular structure of the data itself. These kinds of things are fine when you’re presenting data, but they’re a no go for automation.</p>
+</section>
+<section id="quarantine-and-decontaminate" class="level2">
+<h2 class="anchored" data-anchor-id="quarantine-and-decontaminate">Quarantine and Decontaminate</h2>
+<p>The data decontamination process looks like this:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/data_decontamination.drawio.png" class="img-fluid figure-img" width="511"></p>
+<figcaption>Data decontamination process</figcaption>
+</figure>
+</div>
+<p>We first check the data for signs of contamination symptoms. If it fails, it goes into quarantine. Quarantined data is in a holding pattern until the owner helps it get better (i.e., by fixing the problems) or a case can be made for allowing exceptions (and it has to be a very strong case).</p>
+<p>In our approach, quarantining is a first step to notify us and the owner of problems. Importantly, quarantine involves human intervention - the data team needs to give an ok for it to pass. If it passes the quarantine check, it can move on to the decontamination chamber. This is where we prepare data to be written into the platform such that it follows our conventions. Specifically, it undergoes the following:</p>
+<ol type="1">
+<li>Conversion of column names to snake_case</li>
+<li>Dates and timestamp formats are converted to %Y-%m-%d and %Y-%m-%d %H:%M:%S</li>
+<li>Leading and trailing whitespace is removed</li>
+</ol>
+<p>These are relatively minor changes that have very little impact on the data itself.<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> The final check is then made when the data is actually inserted into the data warehouse. If the schema is invalid it will prevent data from entering. This is something we get for free because of the nature of the platform, but if we were just writing data to object storage we’d want steps in place to manually check the schema.</p>
+<p>So now, after learning from our mistakes we’re starting to ingrain these practices in our data ingestion flows. I’ve developed an internal package called <code>crosscheck</code> to perform the checking steps and decontamination. I’m also looking at integrating our existing <code>pointblank</code> processes into this internal package.<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></p>
+</section>
+<section id="data-decontamination-mindset" class="level2">
+<h2 class="anchored" data-anchor-id="data-decontamination-mindset">Data Decontamination Mindset</h2>
+<p>I’m suggesting to adopt a data decontamination mindset: immediately assume that data is contaminated. I think it is especially important to treat data coming from individuals as contaminated, particularly if the business doesn’t have strong data literacy. We usually can have a bit more trust in data coming from a reputable third-party API, but we should also apply a similar critical attitude in this case too.</p>
+<p>Contaminated, poor quality data can have massive impacts downstream, so taking the time to decontaminate your data is critical. Don’t make the mistake I did and blindly trust that it’s all good because it’s coming from a domain expert. In the end, you should always assume the worst but hope for the best.</p>
 
 
+</section>
 
-</main> <!-- /main -->
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>I’m still grappling with why this is the case, but I think it’s primarily a literacy issue coupled with lack of time and motivation. This <a href="https://briefer.cloud/blog/posts/self-serve-bi-myth/">blog post</a> by Briefer about the myth of self-serve rings true.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>I make the distinction between data quality which is domain agnostic and data validation which is tied to the business use case. Data quality is easier to determine because you look for the same kind of problems such as duplicated data, schema mismatch, NULL/NAs, etc. However, data validation asks more complex questions such as “do these values make sense given the business context?”.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>This one is trickier and I’m more lax on it. In general, I think column names should be more descriptive and avoid the use of acronyms and abbreviations. Common acronyms in the business are obviously ok (in our case, the acronym IATA is widely understood). That said, if most of the columns are obscure it’s cause to reconsider the naming.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>Data owners are still notified of changes. It may be the case that whitespace is used to differentiate values, but this is a red flag for us. Additionally, if changing column names to snake_case introduces column name duplications or invalid names, we stop and return to sender.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>I use the <code>pointblank</code> package to periodically check the quality of data already in our data warehouse. However, the steps laid out here would primarily be used for data that is preflight.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {

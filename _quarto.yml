@@ -13,6 +13,9 @@ website:
       - icon: github
         text: Github
         href: https://github.com/whipson
+      - icon: share
+        text: R-bloggers
+        href: https://www.r-bloggers.com/
 format:
   html:
     theme: litera

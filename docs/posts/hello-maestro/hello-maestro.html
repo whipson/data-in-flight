@@ -138,6 +138,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </i> 
 <span class="menu-text">Github</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.r-bloggers.com/"> <i class="bi bi-share" role="img">
+</i> 
+<span class="menu-text">R-bloggers</span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
           <div class="quarto-navbar-tools">
@@ -159,6 +164,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
                 <div class="quarto-category">maestro</div>
                 <div class="quarto-category">packages</div>
                 <div class="quarto-category">deployment</div>
+                <div class="quarto-category">release</div>
               </div>
                   </div>
   </div>
@@ -183,7 +189,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div>
       <div class="quarto-title-meta-heading">Modified</div>
       <div class="quarto-title-meta-contents">
-        <p class="date-modified">June 24, 2024</p>
+        <p class="date-modified">July 18, 2024</p>
       </div>
     </div>
       
@@ -206,9 +212,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><img src="images/logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></p>
 </figure>
 </div>
-<p>I’m thrilled to announce the CRAN release of <a href="https://whipson.github.io/maestro/">maestro</a> - a new package for developing, scheduling, and monitoring data pipelines. Here, I’ll walk through what maestro does and why you’d want to use it.</p>
+<p>I’m thrilled to announce the develop release of <code>maestro</code> a new package for developing, scheduling, and monitoring data pipelines. Here, I’ll walk through what maestro does and why you’d want to use it.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"maestro"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"https://github.com/whipson/maestro"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="the-motivation" class="level2">
 <h2 class="anchored" data-anchor-id="the-motivation">The Motivation</h2>

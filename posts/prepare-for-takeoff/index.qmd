@@ -6,7 +6,7 @@ date-modified: last-modified
 categories: [news]
 ---
 
-![](images/DALL·E 2024-06-24 13.19.34 - A very simple blueprint-style header image with a hand-drawn feel, focusing on an airplane. Include only a single detailed sketch of an airplane. The .webp){fig-alt="Blueprint with an airplane"}
+![](images/DALL·E%202024-06-24%2013.19.34%20-%20A%20very%20simple%20blueprint-style%20header%20image%20with%20a%20hand-drawn%20feel,%20focusing%20on%20an%20airplane.%20Include%20only%20a%20single%20detailed%20sketch%20of%20an%20airplane.%20The%20.webp){fig-alt="Blueprint with an airplane"}
 
 My new blog *Data In Flight* is about sharing my experiences working with real data on a small scale. In my experience I've found that exciting things happen when you have small-medium sized data and an even smaller budget. Most people don't need the latest and greatest VC backed data platform, despite what tech influencers on LinkedIn say.
 

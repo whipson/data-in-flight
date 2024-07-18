@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Will Hipson">
-<meta name="dcterms.date" content="2024-05-24">
+<meta name="dcterms.date" content="2024-06-24">
 
-<title>data-in-flight - Prepare for Takeoff</title>
+<title>data-in-flight - Many Data Pipelines on Posit Connect with Maestro</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -21,6 +21,40 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -120,9 +154,16 @@ ul.task-list li input[type="checkbox"] {
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Prepare for Takeoff</h1>
+      <h1 class="title">Many Data Pipelines on Posit Connect with Maestro</h1>
+            <p class="subtitle lead">How to deploy and monitor many data pipelines with maestro and Posit Connect</p>
                                 <div class="quarto-categories">
-                <div class="quarto-category">news</div>
+                <div class="quarto-category">R</div>
+                <div class="quarto-category">data engineering</div>
+                <div class="quarto-category">data pipelines</div>
+                <div class="quarto-category">orchestration</div>
+                <div class="quarto-category">maestro</div>
+                <div class="quarto-category">deployment</div>
+                <div class="quarto-category">posit connect</div>
               </div>
                   </div>
   </div>
@@ -140,14 +181,14 @@ ul.task-list li input[type="checkbox"] {
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">May 24, 2024</p>
+        <p class="date">June 24, 2024</p>
       </div>
     </div>
     
       <div>
       <div class="quarto-title-meta-heading">Modified</div>
       <div class="quarto-title-meta-contents">
-        <p class="date-modified">July 11, 2024</p>
+        <p class="date-modified">July 18, 2024</p>
       </div>
     </div>
       
@@ -165,14 +206,126 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<p><img src="images/DALL·E 2024-06-24 13.19.34 - A very simple blueprint-style header image with a hand-drawn feel, focusing on an airplane. Include only a single detailed sketch of an airplane. The .webp" class="img-fluid" alt="Blueprint with an airplane"></p>
-<p>My new blog <em>Data In Flight</em> is about sharing my experiences working with real data on a small scale. In my experience I’ve found that exciting things happen when you have small-medium sized data and an even smaller budget. Most people don’t need the latest and greatest VC backed data platform, despite what tech influencers on LinkedIn say.</p>
-<p>This blog is about scrappy data engineering with a team of one (or at most a number countable on a single hand). My natural inclination is to use R for everything so most of the code-related content in this blog will be in R.</p>
-<p>Nothing here is intended to be polished or the final word (a near impossibility in a rapidly changing field). It’s about the journey and not the destination.</p>
+<p><a href="https://whipson.github.io/maestro/">Maestro</a> is a package for scheduling, deploying, and monitoring data pipelines in a single project. Deploying maestro involves taking the project and automating it on some kind of schedule.</p>
+<p><a href="https://posit.co/products/enterprise/connect/">Posit Connect</a> is a platform for deploying and sharing data science content developed by Posit. Connect is primarily used to host content for people to interact with (i.e., reports, dashboards, etc). I think it’s great for this purpose and we use it this way at the airport all the time. However, less well known is it can be used to run data pipelines and even act as a data repository.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> This is because you can schedule the execution of Quarto documents in Connect; and this means you can schedule the execution of any arbitrary R code to run. This blew my mind when I first realized it!</p>
+<p>Here we’ll look at a real world example of using maestro and Posit Connect together to deploy multiple data pipelines that automatically extract data from a source and store it in tables that accumulate data over time.</p>
+<section id="an-environmental-data-platform" class="level2">
+<h2 class="anchored" data-anchor-id="an-environmental-data-platform">An Environmental Data Platform</h2>
+<p>Sticking with examples I’ve used in previous posts, we’ll use the open <a href="https://api.weather.gc.ca/openapi?f=html">API from Environment Canada</a> for extracting data. We’re going to create 3 data pipelines that are completely independent - it’s just three different data sources going into 3 different tables:</p>
+<ol type="1">
+<li>Daily climate observations</li>
+<li>Hourly climate observations</li>
+<li>Real-time hydrometric data</li>
+</ol>
+<p>Each of these will be used in a maestro pipeline and then transformed data will be stored as a <a href="https://pins.rstudio.com/">pin</a> in Posit Connect.</p>
+</section>
+<section id="maestro-project" class="level2">
+<h2 class="anchored" data-anchor-id="maestro-project">Maestro Project</h2>
+<p>We’ll need to install <code>maestro</code> from CRAN first.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("maestro")</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(maestro)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>You’ll want to use maestro in a brand new R project. If you’re in RStudio you can go to New Project &gt; Maestro Project, or you can run <code>create_maestro("environment-canada-pipelines", type = "Quarto")</code> and then navigate to that project.</p>
+<p>We’ll have a project structure like this:</p>
+<pre><code>environment-canada-pipelines
+├── environment-canada-pipelines.Rproj
+├── orchestrator.R
+└── pipelines
+    └── my_pipe.R</code></pre>
+</section>
+<section id="creating-the-pipelines" class="level2">
+<h2 class="anchored" data-anchor-id="creating-the-pipelines">Creating the pipelines</h2>
+<p>Let’s replace <code>my_pipe.R</code> with some code to extract, transform, and load data from one of the environmental APIs.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' climate_hourly maestro pipeline</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#'</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 1 day</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2024-06-25 01:00:00</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroTz America/Halifax</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroLogLevel INFO</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>climate_hourly <span class="ot">&lt;-</span> <span class="cf">function</span>(board) {</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  last_full_day <span class="ot">&lt;-</span> lubridate<span class="sc">::</span><span class="fu">today</span>() <span class="sc">-</span> lubridate<span class="sc">::</span><span class="fu">days</span>(<span class="dv">1</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  last_full_day_fmt <span class="ot">&lt;-</span> <span class="fu">format</span>(last_full_day, <span class="st">"%Y-%m-%dT%H:%M:%SZ"</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Request to get climate observations for the last full hour</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  req <span class="ot">&lt;-</span> httr2<span class="sc">::</span><span class="fu">request</span>(<span class="st">"https://api.weather.gc.ca/collections/climate-hourly/items"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_url_query</span>(</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">CLIMATE_IDENTIFIER =</span> <span class="dv">8202251</span>, <span class="co"># corresponds with Halifax Int'l Airport</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">datetime =</span> <span class="fu">paste0</span>(last_full_day_fmt, <span class="st">"/.."</span>),</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">skipGeometry =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">LIMIT =</span> <span class="dv">1000</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  resp <span class="ot">&lt;-</span> req <span class="sc">|&gt;</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_perform</span>() <span class="sc">|&gt;</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(<span class="at">simplifyVector =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>  df_raw <span class="ot">&lt;-</span> resp<span class="sc">$</span>features<span class="sc">$</span>properties</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  df_proc <span class="ot">&lt;-</span> df_raw <span class="sc">|&gt;</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    janitor<span class="sc">::</span><span class="fu">clean_names</span>() <span class="sc">|&gt;</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">insert_time =</span> lubridate<span class="sc">::</span><span class="fu">now</span>(<span class="at">tzone =</span> <span class="st">"UTC"</span>)</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Using a custom function for reading, appending, and writing in a single step</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pin_append</span>(</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>    board,</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    df_proc,</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"climate_hourly_transactional"</span>,</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"parquet"</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Note the use of maestro tags to specify the scheduling. Even though the source is hourly climate, the data only updates daily, allowing us to get a previous full day’s worth of hourly climate readings for a particular station.</p>
+<p>Note too that the function <code>climate_hourly</code> - our pipeline - takes an argument called <code>board</code>. This is to allow us to pass the Posit Connect board to the functions that will read and write to the table in Posit Connect. We’ll see later how to use maestro to pass this to the pipeline.</p>
+<section id="pins-as-database-tables" class="level3">
+<h3 class="anchored" data-anchor-id="pins-as-database-tables">Pins as database tables</h3>
+<p>I won’t go too in depth on pins here, suffice it to say that a pin is simply a file and we can store it in Posit Connect. We want to treat our data pins as database tables where we append new rows on top of existing ones. So the process will be read in the existing table and write out the table with the appended rows. I’ve encapsulated these steps in a single function called pin_append:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' Reads a pin (creates if not existing) appends new rows and </span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' writes it back to the same pin </span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>pin_append <span class="ot">&lt;-</span> <span class="cf">function</span>(board, x, name, <span class="at">type =</span> <span class="st">"parquet"</span>) {</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  existing <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>({</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    pins<span class="sc">::</span><span class="fu">pin_read</span>(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>      board,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>      name</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">error =</span> \(e) {</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">warning</span>(<span class="st">"Pin '"</span>, name, <span class="st">"' does not exist. Creating."</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  new <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(x, existing)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>({</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    pins<span class="sc">::</span><span class="fu">pin_write</span>(</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>      board,</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>      new,</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>      <span class="at">name =</span> name,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">type =</span> type</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">error =</span> \(e) {</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"Failed to append to pin '"</span>, name, <span class="st">"'"</span>)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We’ll use this function repeatedly throughout the project, so I’ll put it in a folder called R.</p>
 
 
+</section>
+</section>
 
-</main> <!-- /main -->
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>I hesitate to say ‘database’ because while it can store flat files (.csv and .parquet) it cannot be used to query them like in a true database.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
