@@ -4,6 +4,8 @@ project:
 
 website:
   title: "data-in-flight"
+  site-url: "https://whipson.github.io/data-in-flight/"
+  description: "scrappy data engineering"
   navbar:
     right:
       - about.qmd
