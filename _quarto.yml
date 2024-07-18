@@ -15,6 +15,9 @@ website:
       - icon: github
         text: Github
         href: https://github.com/whipson
+      - icon: rss
+        text: RSS
+        href: index.xml
       - icon: share
         text: R-bloggers
         href: https://www.r-bloggers.com/
