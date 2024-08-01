@@ -30,11 +30,11 @@ asciicast::init_knitr_engine(
 
 ![](images/logo.png){fig-align="center"}
 
-I'm thrilled to announce the develop release of `maestro` a new package for developing, scheduling, and monitoring data pipelines. Here, I'll walk through what maestro does and why you'd want to use it.
+I'm thrilled to announce the release of `maestro`, a new package for developing, scheduling, and monitoring data pipelines. Here, I'll walk through what maestro does and why you'd want to use it.
 
 ```{r}
 #| eval: false
-remotes::install_github("https://github.com/whipson/maestro")
+install.packages("maestro")
 ```
 
 ## The Motivation
