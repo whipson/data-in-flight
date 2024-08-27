@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/maestro-0-2-0/maestro-0-2-0.html",
       "/posts/data-contamination/main.html",
       "/posts/maestro-gcp-deployment/maestro-gcp-deployment.html",
       "/posts/hello-maestro/hello-maestro.html",
