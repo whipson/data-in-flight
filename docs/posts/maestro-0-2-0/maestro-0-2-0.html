@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Will Hipson">
-<meta name="dcterms.date" content="2024-08-26">
+<meta name="dcterms.date" content="2024-08-27">
 
-<title>Maestro 0.2.0 – data-in-flight</title>
+<title>maestro 0.2.0 – data-in-flight</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -159,7 +159,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Maestro 0.2.0</h1>
+      <h1 class="title">maestro 0.2.0</h1>
             <p class="subtitle lead">New tags for specifying hours, days, and months for pipelines</p>
                                 <div class="quarto-categories">
                 <div class="quarto-category">R</div>
@@ -185,7 +185,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">August 26, 2024</p>
+        <p class="date">August 27, 2024</p>
       </div>
     </div>
     
@@ -223,7 +223,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="new-maestrofrequency-syntax" class="level2">
 <h2 class="anchored" data-anchor-id="new-maestrofrequency-syntax">New maestroFrequency Syntax</h2>
-<p>The maestroFrequency tag used to be restrictive in how you specified your pipeline frequency, only accepting it in the form of [n] [units] like <code>1 day</code>, <code>4 hours</code>, <code>2 weeks</code>, etc. A more human-readable adverb option is now available. You can specify it as one of <code>hourly</code>, <code>daily</code>, <code>weekly</code>, <code>biweekly</code>, <code>monthly</code>, <code>quarterly</code> and <code>yearly</code>. Each of these is the equivalent of 1 [unit] - so hourly = 1 hour.</p>
+<p>The maestroFrequency tag used to be restrictive in how you specified your pipeline frequency, only accepting it in the form of [n] [units] like <code>1 day</code>, <code>4 hours</code>, <code>2 weeks</code>, etc. A more human-readable adverb option is now available. You can specify it as one of <code>hourly</code>, <code>daily</code>, <code>weekly</code>, <code>biweekly</code>, <code>monthly</code>, <code>quarterly</code> and <code>yearly</code>. Each of these is the equivalent of 1 [unit]. So, hourly = 1 hour.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' Example hourly pipeline</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency hourly</span></span>
@@ -256,6 +256,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># job code ...</span></span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p>This will be UTC hours by default. If I want my timezone to be where I live I can specify <code>maestroTz America/Halifax</code>.</p>
 </section>
 <section id="specific-days" class="level3">
 <h3 class="anchored" data-anchor-id="specific-days">Specific Days</h3>
