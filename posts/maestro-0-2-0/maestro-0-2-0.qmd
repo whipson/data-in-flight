@@ -1,0 +1,117 @@
+---
+title: "maestro 0.2.0"
+subtitle: New tags for specifying hours, days, and months for pipelines
+author: "Will Hipson"
+date: "2024-08-27"
+date-modified: last-modified
+categories: [R, data pipelines, orchestration, maestro, packages, release]
+---
+
+![](images/logo.png){fig-align="center"}
+
+`maestro` 0.2.0 brings with it new features for scheduling pipelines on specific hours, days, or months. With a few new tags, we have so much more versatility for scheduling.
+
+If you haven't heard of maestro, it's a package that helps you schedule your R scripts all in a single project using tags. You can learn more about it [here](../hello-maestro/hello-maestro.qmd).
+
+Get it from CRAN:
+
+```{r, eval=FALSE}
+install.packages("maestro")
+```
+
+## New maestroFrequency Syntax
+
+The maestroFrequency tag used to be restrictive in how you specified your pipeline frequency, only accepting it in the form of \[n\] \[units\] like `1 day`, `4 hours`, `2 weeks`, etc. A more human-readable adverb option is now available. You can specify it as one of `hourly`, `daily`, `weekly`, `biweekly`, `monthly`, `quarterly` and `yearly`. Each of these is the equivalent of 1 \[unit\]. So, hourly = 1 hour.
+
+```{r, eval=FALSE}
+#' Example hourly pipeline
+#' @maestroFrequency hourly
+my_hourly_job <- function() {
+  # job code ...
+}
+```
+
+You can also use this syntax in `run_schedule`:
+
+```{r, eval=FALSE}
+library(maestro)
+
+run_schedule(
+  example_schedule,
+  orch_frequency = "hourly"
+)
+```
+
+These frequencies are important not only for readability but they also combine with hour, day, and month specifiers for more bespoke scheduling.
+
+## New Hours, Days, Months Specifiers
+
+Until now you could only run pipelines on regular intervals. With 0.2.0 you can specify particular hours, days, and months you want the pipelines to run. This is useful if you want to do something like have a job run only on business hours or just on weekends. 3 new tags `maestroHours`, `maestroDays`, and `maestroMonths` are available.
+
+### Specific Hours
+
+Let's say I have a pipeline I want to run during regular 9am-5pm business hours. I can use a maestroFrequency of hourly and specify the hours 9am through to 5pm:
+
+```{r, eval=FALSE}
+#' Example work hours pipeline
+#' @maestroFrequency hourly
+#' @maestroHours 9 10 11 12 13 14 15 16 17
+my_work_hours_job <- function() {
+  # job code ...
+}
+```
+
+This will be UTC hours by default. If I want my timezone to be where I live I can specify `maestroTz America/Halifax`.
+
+### Specific Days
+
+We can specify either days of week or days of month. Days of week use abbreviated weekdays like Mon, Wed, Sat; whereas days of month use integers 1, 10, 15, etc.
+
+Taking the above example further, let's have it run during business hours on weekdays:
+
+```{r}
+#' Example work hours pipeline
+#' @maestroFrequency hourly
+#' @maestroHours 9 10 11 12 13 14 15 16 17
+#' @maestroDays Mon Tue Wed Thu Fri
+my_work_hours_job2 <- function() {
+  # job code ...
+}
+```
+
+### Specific Months
+
+To specify the months use the integers 1-12. Let's imagine that our pipeline only runs in March, June, October, and December:
+
+```{r}
+#' Example work hours pipeline
+#' @maestroFrequency hourly
+#' @maestroHours 9 10 11 12 13 14 15 16 17
+#' @maestroDays Mon Tue Wed Thu Fri
+#' @maestroMonths 3 6 10 12
+my_work_hours_job3 <- function() {
+  # job code ...
+}
+```
+
+These specifiers must be used with -ly frequencies like hourly and daily. The type of specifier used must be at least the same as the base frequency. For example, we can't use maestroHours on a pipeline with a daily frequency.
+
+## Improvements to `suggest_orch_frequency`
+
+The function `suggest_orch_frequency` takes a schedule generated from `build_schedule` and suggests the likely optimal frequency for the orchestrator. Until recently, this function was pretty basic and just suggested twice the amount of the highest frequency pipeline in the project. This wouldn't work out well if you had pipelines staggered on different hours.
+
+Now `suggest_orch_frequency` looks for the smallest interval of time between pipelines. It won't consider hours, days, months specifiers though.
+
+```{r}
+library(maestro)
+
+example_schedule[c("pipe_name", "frequency", "start_time")]
+
+suggest_orch_frequency(example_schedule)
+```
+
+Note that `suggest_orch_frequency` assumes that you want to run your pipelines *exactly* when you want them to - it won't try to round to the nearest 15 minute or whatever.
+
+Check out the [release notes](https://whipson.github.io/maestro/news/index.html) for more details on what's new in version 0.2.0. If you find any bugs or want to suggest new features and improvements, please add them [here](https://github.com/whipson/maestro/issues) or reach out to me on [LinkedIn](https://www.linkedin.com/in/will-hipson/).
+
+Happy orchestrating!

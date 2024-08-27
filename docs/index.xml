@@ -9,8 +9,222 @@
 <link>https://whipson.github.io/data-in-flight/</link>
 <atom:link href="https://whipson.github.io/data-in-flight/index.xml" rel="self" type="application/rss+xml"/>
 <description>scrappy data engineering</description>
-<generator>quarto-1.4.549</generator>
-<lastBuildDate>Thu, 18 Jul 2024 03:00:00 GMT</lastBuildDate>
+<generator>quarto-1.5.56</generator>
+<lastBuildDate>Mon, 26 Aug 2024 03:00:00 GMT</lastBuildDate>
+<item>
+  <title>Maestro 0.2.0</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/maestro-0-2-0/maestro-0-2-0.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-0-2-0/images/logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></p>
+</figure>
+</div>
+<p><code>maestro</code> 0.2.0 brings with it new features for scheduling pipelines on specific hours, days, or months. With a few new tags, we have so much more versatility for scheduling.</p>
+<p>If you haven’t heard of maestro, it’s a package that helps you schedule your R scripts all in a single project using tags. You can learn more about it <a href="../../posts/hello-maestro/hello-maestro.html">here</a>.</p>
+<p>Get it from CRAN:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">install.packages</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"maestro"</span>)</span></code></pre></div>
+</div>
+<section id="new-maestrofrequency-syntax" class="level2">
+<h2 class="anchored" data-anchor-id="new-maestrofrequency-syntax">New maestroFrequency Syntax</h2>
+<p>The maestroFrequency tag used to be restrictive in how you specified your pipeline frequency, only accepting it in the form of [n] [units] like <code>1 day</code>, <code>4 hours</code>, <code>2 weeks</code>, etc. A more human-readable adverb option is now available. You can specify it as one of <code>hourly</code>, <code>daily</code>, <code>weekly</code>, <code>biweekly</code>, <code>monthly</code>, <code>quarterly</code> and <code>yearly</code>. Each of these is the equivalent of 1 [unit] - so hourly = 1 hour.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' Example hourly pipeline</span></span>
+<span id="cb2-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency hourly</span></span>
+<span id="cb2-3">my_hourly_job <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-4">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># job code ...</span></span>
+<span id="cb2-5">}</span></code></pre></div>
+</div>
+<p>You can also use this syntax in <code>run_schedule</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span>
+<span id="cb3-2"></span>
+<span id="cb3-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_schedule</span>(</span>
+<span id="cb3-4">  example_schedule,</span>
+<span id="cb3-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hourly"</span></span>
+<span id="cb3-6">)</span></code></pre></div>
+</div>
+<p>These frequencies are important not only for readability but they also combine with hour, day, and month specifiers for more bespoke scheduling.</p>
+</section>
+<section id="new-hours-days-months-specifiers" class="level2">
+<h2 class="anchored" data-anchor-id="new-hours-days-months-specifiers">New Hours, Days, Months Specifiers</h2>
+<p>Until now you could only run pipelines on regular intervals. With 0.2.0 you can specify particular hours, days, and months you want the pipelines to run. This is useful if you want to do something like have a job run only on business hours or just on weekends. 3 new tags <code>maestroHours</code>, <code>maestroDays</code>, and <code>maestroMonths</code> are available.</p>
+<section id="specific-hours" class="level3">
+<h3 class="anchored" data-anchor-id="specific-hours">Specific Hours</h3>
+<p>Let’s say I have a pipeline I want to run during regular 9am-5pm business hours. I can use a maestroFrequency of hourly and specify the hours 9am through to 5pm:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' Example work hours pipeline</span></span>
+<span id="cb4-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency hourly</span></span>
+<span id="cb4-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroHours 9 10 11 12 13 14 15 16 17</span></span>
+<span id="cb4-4">my_work_hours_job <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb4-5">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># job code ...</span></span>
+<span id="cb4-6">}</span></code></pre></div>
+</div>
+</section>
+<section id="specific-days" class="level3">
+<h3 class="anchored" data-anchor-id="specific-days">Specific Days</h3>
+<p>We can specify either days of week or days of month. Days of week use abbreviated weekdays like Mon, Wed, Sat; whereas days of month use integers 1, 10, 15, etc.</p>
+<p>Taking the above example further, let’s have it run during business hours on weekdays:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' Example work hours pipeline</span></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency hourly</span></span>
+<span id="cb5-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroHours 9 10 11 12 13 14 15 16 17</span></span>
+<span id="cb5-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroDays Mon Tue Wed Thu Fri</span></span>
+<span id="cb5-5">my_work_hours_job2 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb5-6">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># job code ...</span></span>
+<span id="cb5-7">}</span></code></pre></div>
+</div>
+</section>
+<section id="specific-months" class="level3">
+<h3 class="anchored" data-anchor-id="specific-months">Specific Months</h3>
+<p>To specify the months use the integers 1-12. Let’s imagine that our pipeline only runs in March, June, October, and December:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' Example work hours pipeline</span></span>
+<span id="cb6-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency hourly</span></span>
+<span id="cb6-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroHours 9 10 11 12 13 14 15 16 17</span></span>
+<span id="cb6-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroDays Mon Tue Wed Thu Fri</span></span>
+<span id="cb6-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroMonths 3 6 10 12</span></span>
+<span id="cb6-6">my_work_hours_job3 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb6-7">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># job code ...</span></span>
+<span id="cb6-8">}</span></code></pre></div>
+</div>
+<p>These specifiers must be used with -ly frequencies like hourly and daily. The type of specifier used must be at least the same as the base frequency. For example, we can’t use maestroHours on a pipeline with a daily frequency.</p>
+</section>
+</section>
+<section id="improvements-to-suggest_orch_frequency" class="level2">
+<h2 class="anchored" data-anchor-id="improvements-to-suggest_orch_frequency">Improvements to <code>suggest_orch_frequency</code></h2>
+<p>The function <code>suggest_orch_frequency</code> takes a schedule generated from <code>build_schedule</code> and suggests the likely optimal frequency for the orchestrator. Until recently, this function was pretty basic and just suggested twice the amount of the highest frequency pipeline in the project. This wouldn’t work out well if you had pipelines staggered on different hours.</p>
+<p>Now <code>suggest_orch_frequency</code> looks for the smallest interval of time between pipelines. It won’t consider hours, days, months specifiers though.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span>
+<span id="cb7-2"></span>
+<span id="cb7-3">example_schedule[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pipe_name"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"frequency"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"start_time"</span>)]</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          pipe_name frequency          start_time
+1              pipe 30 minute 1970-01-01 00:00:00
+2        get_mtcars     1 day 2024-03-01 09:00:00
+3              wait   3 month 1970-01-01 00:00:00
+4               add   3 month 1970-01-01 00:00:00
+5         something   3 month 1970-01-01 00:00:00
+6         something     daily 1970-01-01 00:00:00
+7       get_mtcars2     1 day 2024-03-01 09:00:00
+8     specific_days     daily 1970-01-01 00:00:00
+9    specific_days2     daily 1970-01-01 00:00:00
+10   specific_hours    hourly 1970-01-01 00:00:00
+11 specific_months1  biweekly 1970-01-01 00:00:00
+12 specific_months2    weekly 1970-01-01 00:00:00
+13 specific_months3   monthly 1970-01-01 00:00:00
+14   specific_multi    hourly 1970-01-01 00:00:00</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">suggest_orch_frequency</span>(example_schedule)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "30 mins"</code></pre>
+</div>
+</div>
+<p>Note that <code>suggest_orch_frequency</code> assumes that you want to run your pipelines <em>exactly</em> when you want them to - it won’t try to round to the nearest 15 minute or whatever.</p>
+<p>Check out the <a href="https://whipson.github.io/maestro/news/index.html">release notes</a> for more details on what’s new in version 0.2.0. If you find any bugs or want to suggest new features and improvements, please add them <a href="https://github.com/whipson/maestro/issues">here</a> or reach out to me on <a href="https://www.linkedin.com/in/will-hipson/">LinkedIn</a>.</p>
+<p>Happy orchestrating!</p>
+
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>packages</category>
+  <category>release</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/maestro-0-2-0/maestro-0-2-0.html</guid>
+  <pubDate>Mon, 26 Aug 2024 03:00:00 GMT</pubDate>
+</item>
 <item>
   <title>The Data Decontamination Mindset</title>
   <dc:creator>Will Hipson</dc:creator>
@@ -132,13 +346,16 @@ background-color: null;
 font-style: inherit;"># Dockerfile</span></span>
 <span id="cb1-2"><span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">FROM</span> rocker/r-ver</span>
 <span id="cb1-3"><span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">RUN</span> <span class="ex" style="color: null;
 background-color: null;
 font-style: inherit;">apt-get</span> update <span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">&amp;&amp;</span> <span class="ex" style="color: null;
 background-color: null;
 font-style: inherit;">apt-get</span> install <span class="at" style="color: #657422;
@@ -166,6 +383,7 @@ background-color: null;
 font-style: inherit;">\</span></span>
 <span id="cb1-10">    <span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">&amp;&amp;</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">rm</span> <span class="at" style="color: #657422;
@@ -175,6 +393,7 @@ background-color: null;
 font-style: inherit;">*</span></span>
 <span id="cb1-11"><span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">RUN</span> <span class="ex" style="color: null;
 background-color: null;
 font-style: inherit;">R</span> <span class="at" style="color: #657422;
@@ -184,6 +403,7 @@ background-color: null;
 font-style: inherit;">'install.packages("remotes")'</span></span>
 <span id="cb1-12"><span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">RUN</span> <span class="ex" style="color: null;
 background-color: null;
 font-style: inherit;">R</span> <span class="at" style="color: #657422;
@@ -193,12 +413,15 @@ background-color: null;
 font-style: inherit;">'remotes::install_version("renv", version = "1.0.7")'</span></span>
 <span id="cb1-13"><span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">WORKDIR</span> /usr/src/app</span>
 <span id="cb1-14"><span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">COPY</span> . .</span>
 <span id="cb1-15"><span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">RUN</span> <span class="ex" style="color: null;
 background-color: null;
 font-style: inherit;">R</span> <span class="at" style="color: #657422;
@@ -208,6 +431,7 @@ background-color: null;
 font-style: inherit;">'renv::restore()'</span></span>
 <span id="cb1-16"><span class="kw" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">ENTRYPOINT</span> [<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Rscript"</span>, <span class="st" style="color: #20794D;
@@ -394,6 +618,7 @@ font-style: inherit;">#' @maestroLogLevel INFO</span></span>
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">function</span>() {</span>
 <span id="cb4-9"></span>
 <span id="cb4-10">  <span class="co" style="color: #5E5E5E;
@@ -424,6 +649,7 @@ font-style: inherit;">#' @maestroStartTime 2024-06-03</span></span>
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
+font-weight: bold;
 font-style: inherit;">function</span>() {</span>
 <span id="cb5-5">  </span>
 <span id="cb5-6">  <span class="co" style="color: #5E5E5E;
