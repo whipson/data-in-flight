@@ -10,9 +10,9 @@
 <atom:link href="https://whipson.github.io/data-in-flight/index-r.xml" rel="self" type="application/rss+xml"/>
 <description>scrappy data engineering</description>
 <generator>quarto-1.5.56</generator>
-<lastBuildDate>Mon, 26 Aug 2024 03:00:00 GMT</lastBuildDate>
+<lastBuildDate>Tue, 27 Aug 2024 03:00:00 GMT</lastBuildDate>
 <item>
-  <title>Maestro 0.2.0</title>
+  <title>maestro 0.2.0</title>
   <dc:creator>Will Hipson</dc:creator>
   <link>https://whipson.github.io/data-in-flight/posts/maestro-0-2-0/maestro-0-2-0.html</link>
   <description><![CDATA[ 
@@ -38,7 +38,7 @@ font-style: inherit;">"maestro"</span>)</span></code></pre></div>
 </div>
 <section id="new-maestrofrequency-syntax" class="level2">
 <h2 class="anchored" data-anchor-id="new-maestrofrequency-syntax">New maestroFrequency Syntax</h2>
-<p>The maestroFrequency tag used to be restrictive in how you specified your pipeline frequency, only accepting it in the form of [n] [units] like <code>1 day</code>, <code>4 hours</code>, <code>2 weeks</code>, etc. A more human-readable adverb option is now available. You can specify it as one of <code>hourly</code>, <code>daily</code>, <code>weekly</code>, <code>biweekly</code>, <code>monthly</code>, <code>quarterly</code> and <code>yearly</code>. Each of these is the equivalent of 1 [unit] - so hourly = 1 hour.</p>
+<p>The maestroFrequency tag used to be restrictive in how you specified your pipeline frequency, only accepting it in the form of [n] [units] like <code>1 day</code>, <code>4 hours</code>, <code>2 weeks</code>, etc. A more human-readable adverb option is now available. You can specify it as one of <code>hourly</code>, <code>daily</code>, <code>weekly</code>, <code>biweekly</code>, <code>monthly</code>, <code>quarterly</code> and <code>yearly</code>. Each of these is the equivalent of 1 [unit]. So, hourly = 1 hour.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
@@ -103,6 +103,7 @@ background-color: null;
 font-style: inherit;"># job code ...</span></span>
 <span id="cb4-6">}</span></code></pre></div>
 </div>
+<p>This will be UTC hours by default. If I want my timezone to be where I live I can specify <code>maestroTz America/Halifax</code>.</p>
 </section>
 <section id="specific-days" class="level3">
 <h3 class="anchored" data-anchor-id="specific-days">Specific Days</h3>
@@ -223,7 +224,7 @@ font-style: inherit;">suggest_orch_frequency</span>(example_schedule)</span></co
   <category>packages</category>
   <category>release</category>
   <guid>https://whipson.github.io/data-in-flight/posts/maestro-0-2-0/maestro-0-2-0.html</guid>
-  <pubDate>Mon, 26 Aug 2024 03:00:00 GMT</pubDate>
+  <pubDate>Tue, 27 Aug 2024 03:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Deploying a Maestro Project to Google Cloud Platform</title>
