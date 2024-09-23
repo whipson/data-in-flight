@@ -6,8 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Will Hipson">
+<meta name="dcterms.date" content="2024-09-23">
 
-<title>About – data-in-flight</title>
+<title>maestro 0.3.0 – data-in-flight</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,24 +22,59 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-html/quarto.js"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -67,17 +104,17 @@ ul.task-list li input[type="checkbox"] {
 }</script>
 
 
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-fixed fullcontent">
 
 <div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">data-in-flight</span>
     </a>
   </div>
@@ -88,7 +125,7 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./about.html" aria-current="page"> 
+    <a class="nav-link" href="../../about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
   <li class="nav-item">
@@ -102,7 +139,7 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Github</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./index.xml"> <i class="bi bi-rss" role="img">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
 </i> 
 <span class="menu-text">RSS</span></a>
   </li>  
@@ -119,48 +156,206 @@ ul.task-list li input[type="checkbox"] {
     </nav>
 </header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">maestro 0.3.0</h1>
+            <p class="subtitle lead">New methods for getting schedule status and return values from pipelines</p>
+                                <div class="quarto-categories">
+                <div class="quarto-category">R</div>
+                <div class="quarto-category">data pipelines</div>
+                <div class="quarto-category">orchestration</div>
+                <div class="quarto-category">maestro</div>
+                <div class="quarto-category">packages</div>
+                <div class="quarto-category">release</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Will Hipson </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">September 23, 2024</p>
+      </div>
+    </div>
+    
+      <div>
+      <div class="quarto-title-meta-heading">Modified</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date-modified">September 23, 2024</p>
+      </div>
+    </div>
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
 <!-- main -->
-<div class="quarto-about-marquee">
-  <div class="about-image-container">
-    <img src="profile.jpg" class="about-image " style="width: 100%;">
-  </div>
-  <div class="about-contents">
-    <header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">About</h1>
-</div>
-<div class="quarto-title-meta">
-  </div>
-</header> <main class="content" id="quarto-document-content">
-<p>My name is Will, I’m a Data Engineer at the Halifax International Airport. I write about things that interest me in the world of data engineering and data science. I’m an enthusiastic R developer, and author of the <a href="https://github.com/whipson/maestro">maestro</a> package.</p>
-<p>Most of my working hours are spent managing a data platform - building data pipelines, managing databases, and serving consumers of data. Outside of that I like reading, drawing, and watching spy films.</p>
-<p>Writes about:</p>
-<ul>
-<li><p>R</p></li>
-<li><p>Data Engineering</p></li>
-<li><p>Data Visualization</p></li>
-</ul>
+<main class="content quarto-banner-title-block" id="quarto-document-content">
 
 
-</main> 
-    <div class="about-footer"><div class="about-links">
-  <a href="https://www.linkedin.com/in/will-hipson/" class="about-link" rel="" target="">
-    <i class="bi bi-linkedin"></i>
-     <span class="about-link-text">LinkedIn</span>
-  </a>
-  <a href="https://github.com/whipson" class="about-link" rel="" target="">
-    <i class="bi bi-github"></i>
-     <span class="about-link-text">Github</span>
-  </a>
+
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></p>
+</figure>
+</div>
+<p><code>maestro</code> 0.3.0 introduces principled methods for obtaining a schedule table, pipeline status, and artifacts (i.e., return values). This is now possible because of a major refactoring of the backend to use R6 classes for pipelines and schedules. This also introduced a few breaking changes, but on the whole, not a lot is different.</p>
+<p>If you haven’t heard of maestro, it’s a package that helps you schedule your R scripts all in a single project using tags. You can learn more about it <a href="../../posts/hello-maestro/hello-maestro.html">here</a>.</p>
+<p>Get it from CRAN:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"maestro"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="a-schedule-is-now-a-maestroschedule" class="level2">
+<h2 class="anchored" data-anchor-id="a-schedule-is-now-a-maestroschedule">A schedule is now a &lt;MaestroSchedule&gt;</h2>
+<p>Schedules are now a special class with attributes and methods. For most users, this won’t change how they use maestro, but it’ll make it much easier to extend maestro with new features in the future. Let’s see how a typical maestro scenario plays out now:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(maestro)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a few dummy pipelines for demo purposes</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">create_pipeline</span>(</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"my_pipe"</span>, <span class="at">open =</span> <span class="cn">FALSE</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">create_pipeline</span>(</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"my_pipe2"</span>, <span class="at">frequency =</span> <span class="st">"1 week"</span>, <span class="at">open =</span> <span class="cn">FALSE</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">create_pipeline</span>(</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"my_pipe3"</span>, <span class="at">frequency =</span> <span class="st">"2 hours"</span>, <span class="at">open =</span> <span class="cn">FALSE</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>schedule <span class="ot">&lt;-</span> <span class="fu">build_schedule</span>(<span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>output <span class="ot">&lt;-</span> <span class="fu">run_schedule</span>(</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  schedule,</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">orch_frequency =</span> <span class="st">"daily"</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── [2024-09-23 11:15:50]
+Running pipelines ▶ </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ my_pipe</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ my_pipe [5ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ my_pipe3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ my_pipe3 [61ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── [2024-09-23 11:15:50]
+Pipeline execution completed ■ | 0.078 sec elapsed </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ 2 successes | → 1 skipped | ! 0 warnings | ✖ 0 errors | ◼ 3 total</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Next scheduled pipelines ❯ </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Pipe name | Next scheduled run</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>• my_pipe3 | 2024-09-24 02:00:00</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>• my_pipe | 2024-09-25</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>• my_pipe2 | 2024-09-30</code></pre>
 </div>
 </div>
-  </div>
+<p>So far these are the same steps as before. The difference is now in how we interact with the schedule. Here, <code>schedule</code> is no longer a data.frame, it’s a <code>&lt;MaestroSchedule&gt;</code> R6 object. If we want to get the status of each of the pipelines, we can use the new <code>get_status()</code> function:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_status</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 10
+  pipe_name script_path  invoked success pipeline_started    pipeline_ended     
+  &lt;chr&gt;     &lt;chr&gt;        &lt;lgl&gt;   &lt;lgl&gt;   &lt;dttm&gt;              &lt;dttm&gt;             
+1 my_pipe   ./pipelines… TRUE    TRUE    2024-09-23 14:15:50 2024-09-23 14:15:50
+2 my_pipe2  ./pipelines… FALSE   FALSE   NA                  NA                 
+3 my_pipe3  ./pipelines… TRUE    TRUE    2024-09-23 14:15:50 2024-09-23 14:15:50
+# ℹ 4 more variables: errors &lt;int&gt;, warnings &lt;int&gt;, messages &lt;int&gt;,
+#   next_run &lt;dttm&gt;</code></pre>
 </div>
- <!-- /main -->
+</div>
+<p>If we just want the schedule, we can use <code>get_schedule()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_schedule</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 9
+  script_path      pipe_name frequency start_time          tz    skip  log_level
+  &lt;chr&gt;            &lt;chr&gt;     &lt;chr&gt;     &lt;dttm&gt;              &lt;chr&gt; &lt;lgl&gt; &lt;chr&gt;    
+1 ./pipelines/my_… my_pipe   1 day     2024-09-23 00:00:00 UTC   FALSE INFO     
+2 ./pipelines/my_… my_pipe2  1 week    2024-09-23 00:00:00 UTC   FALSE INFO     
+3 ./pipelines/my_… my_pipe3  2 hours   2024-09-23 00:00:00 UTC   FALSE INFO     
+# ℹ 2 more variables: frequency_n &lt;int&gt;, frequency_unit &lt;chr&gt;</code></pre>
+</div>
+</div>
+<p>Note that we didn’t have to assign a new object when we ran <code>run_schedule()</code>. The object <code>schedule</code> is updated to reflect the execution of the schedule.</p>
+<p>If any pipelines have return values, we can access those as a named list using <code>get_artifacts()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_artifacts</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>named list()</code></pre>
+</div>
+</div>
+</section>
+<section id="invoking-a-pipeline" class="level2">
+<h2 class="anchored" data-anchor-id="invoking-a-pipeline">Invoking a pipeline</h2>
+<p>When interactively working in a maestro project, it may sometimes be useful to manually trigger a pipeline. Now, if you’ve created a <code>&lt;MaestroSchedule&gt;</code> object in the environment, you can do this using <code>invoke()</code>. This will execute the pipeline regardless of whether it’s scheduled or not.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">invoke</span>(schedule, <span class="at">pipe_name =</span> <span class="st">"my_pipe"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ my_pipe</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ my_pipe [4ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+</div>
+<p>Check out the <a href="https://whipson.github.io/maestro/news/index.html">release notes</a> for more details on what’s new in version 0.3.0. If you find any bugs or want to suggest new features and improvements, please add them <a href="https://github.com/whipson/maestro/issues">here</a> or reach out to me on <a href="https://www.linkedin.com/in/will-hipson/">LinkedIn</a>.</p>
+<p>Happy orchestrating!</p>
+
+
+</section>
+
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -181,6 +376,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
   toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
   const isCodeAnnotation = (el) => {
     for (const clz of el.classList) {
       if (clz.startsWith('code-annotation-')) {                     

@@ -295,14 +295,13 @@
     },
     "evaluate": {
       "Package": "evaluate",
-      "Version": "0.24.0",
+      "Version": "1.0.0",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "CRAN",
       "Requirements": [
-        "R",
-        "methods"
+        "R"
       ],
-      "Hash": "a1066cbc05caee9a4bf6d90f194ff4da"
+      "Hash": "6b567375113ceb7d9f800de4dd42218e"
     },
     "fansi": {
       "Package": "fansi",
@@ -541,20 +540,22 @@
     },
     "maestro": {
       "Package": "maestro",
-      "Version": "0.2.0",
+      "Version": "0.3.0.9000",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "maestro",
       "RemoteUsername": "whipson",
       "RemoteRef": "HEAD",
-      "RemoteSha": "b86658d8f486f91526421f1283d5607d3f795f90",
+      "RemoteSha": "6639b9d62c9891be24671e92d18454d8fe5f704d",
       "Requirements": [
         "R",
         "R.utils",
+        "R6",
         "cli",
         "dplyr",
         "glue",
+        "lifecycle",
         "logger",
         "lubridate",
         "purrr",
@@ -564,7 +565,7 @@
         "timechange",
         "utils"
       ],
-      "Hash": "82f43fd8ac2c1827c94c8b036f2bbc7a"
+      "Hash": "7706e4c872246d8d884d04169c730c1c"
     },
     "magick": {
       "Package": "magick",
@@ -725,14 +726,14 @@
     },
     "ps": {
       "Package": "ps",
-      "Version": "1.7.7",
+      "Version": "1.8.0",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "R",
         "utils"
       ],
-      "Hash": "878b467580097e9c383acbb16adab57a"
+      "Hash": "4b9c8485b0c7eecdf0a9ba5132a45576"
     },
     "purrr": {
       "Package": "purrr",

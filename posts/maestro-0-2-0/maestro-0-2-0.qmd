@@ -105,9 +105,9 @@ Now `suggest_orch_frequency` looks for the smallest interval of time between pip
 ```{r}
 library(maestro)
 
-example_schedule[c("pipe_name", "frequency", "start_time")]
+schedule <- build_schedule()
 
-suggest_orch_frequency(example_schedule)
+suggest_orch_frequency(schedule)
 ```
 
 Note that `suggest_orch_frequency` assumes that you want to run your pipelines *exactly* when you want them to - it won't try to round to the nearest 15 minute or whatever.

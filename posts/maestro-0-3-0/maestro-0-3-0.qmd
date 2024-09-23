@@ -1,0 +1,78 @@
+---
+title: "maestro 0.3.0"
+subtitle: New methods for getting schedule status and return values from pipelines
+author: "Will Hipson"
+date: "2024-09-23"
+date-modified: last-modified
+categories: [R, data pipelines, orchestration, maestro, packages, release]
+---
+
+![](images/logo.png){fig-align="center"}
+
+`maestro` 0.3.0 introduces principled methods for obtaining a schedule table, pipeline status, and artifacts (i.e., return values). This is now possible because of a major refactoring of the backend to use R6 classes for pipelines and schedules. This also introduced a few breaking changes, but on the whole, not a lot is different.
+
+If you haven't heard of maestro, it's a package that helps you schedule your R scripts all in a single project using tags. You can learn more about it [here](../hello-maestro/hello-maestro.qmd).
+
+Get it from CRAN:
+
+```{r, eval=FALSE}
+install.packages("maestro")
+```
+
+## A schedule is now a \<MaestroSchedule\>
+
+Schedules are now a special class with attributes and methods. For most users, this won't change how they use maestro, but it'll make it much easier to extend maestro with new features in the future. Let's see how a typical maestro scenario plays out now:
+
+```{r}
+library(maestro)
+
+# Create a few dummy pipelines for demo purposes
+create_pipeline(
+  "my_pipe", open = FALSE, quiet = TRUE, overwrite = TRUE
+  )
+create_pipeline(
+  "my_pipe2", frequency = "1 week", open = FALSE, quiet = TRUE, overwrite = TRUE
+  )
+create_pipeline(
+  "my_pipe3", frequency = "2 hours", open = FALSE, quiet = TRUE, overwrite = TRUE
+  )
+
+schedule <- build_schedule(quiet = TRUE)
+
+output <- run_schedule(
+  schedule,
+  orch_frequency = "daily"
+)
+```
+
+So far these are the same steps as before. The difference is now in how we interact with the schedule. Here, `schedule` is no longer a data.frame, it's a `<MaestroSchedule>` R6 object. If we want to get the status of each of the pipelines, we can use the new `get_status()` function:
+
+```{r}
+get_status(schedule)
+```
+
+If we just want the schedule, we can use `get_schedule()`:
+
+```{r}
+get_schedule(schedule)
+```
+
+Note that we didn't have to assign a new object when we ran `run_schedule()`. The object `schedule` is updated to reflect the execution of the schedule.
+
+If any pipelines have return values, we can access those as a named list using `get_artifacts()`:
+
+```{r}
+get_artifacts(schedule)
+```
+
+## Invoking a pipeline
+
+When interactively working in a maestro project, it may sometimes be useful to manually trigger a pipeline. Now, if you've created a `<MaestroSchedule>` object in the environment, you can do this using `invoke()`. This will execute the pipeline regardless of whether it's scheduled or not.
+
+```{r}
+invoke(schedule, pipe_name = "my_pipe")
+```
+
+Check out the [release notes](https://whipson.github.io/maestro/news/index.html) for more details on what's new in version 0.3.0. If you find any bugs or want to suggest new features and improvements, please add them [here](https://github.com/whipson/maestro/issues) or reach out to me on [LinkedIn](https://www.linkedin.com/in/will-hipson/).
+
+Happy orchestrating!
