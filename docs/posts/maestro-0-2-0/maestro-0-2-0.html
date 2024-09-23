@@ -192,7 +192,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div>
       <div class="quarto-title-meta-heading">Modified</div>
       <div class="quarto-title-meta-contents">
-        <p class="date-modified">August 27, 2024</p>
+        <p class="date-modified">September 23, 2024</p>
       </div>
     </div>
       
@@ -295,27 +295,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(maestro)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>example_schedule[<span class="fu">c</span>(<span class="st">"pipe_name"</span>, <span class="st">"frequency"</span>, <span class="st">"start_time"</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>          pipe_name frequency          start_time
-1              pipe 30 minute 1970-01-01 00:00:00
-2        get_mtcars     1 day 2024-03-01 09:00:00
-3              wait   3 month 1970-01-01 00:00:00
-4               add   3 month 1970-01-01 00:00:00
-5         something   3 month 1970-01-01 00:00:00
-6         something     daily 1970-01-01 00:00:00
-7       get_mtcars2     1 day 2024-03-01 09:00:00
-8     specific_days     daily 1970-01-01 00:00:00
-9    specific_days2     daily 1970-01-01 00:00:00
-10   specific_hours    hourly 1970-01-01 00:00:00
-11 specific_months1  biweekly 1970-01-01 00:00:00
-12 specific_months2    weekly 1970-01-01 00:00:00
-13 specific_months3   monthly 1970-01-01 00:00:00
-14   specific_multi    hourly 1970-01-01 00:00:00</code></pre>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>schedule <span class="ot">&lt;-</span> <span class="fu">build_schedule</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ 1 script successfully parsed</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suggest_orch_frequency</span>(example_schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">suggest_orch_frequency</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "30 mins"</code></pre>
+<pre><code>[1] "1 day"</code></pre>
 </div>
 </div>
 <p>Note that <code>suggest_orch_frequency</code> assumes that you want to run your pipelines <em>exactly</em> when you want them to - it won’t try to round to the nearest 15 minute or whatever.</p>

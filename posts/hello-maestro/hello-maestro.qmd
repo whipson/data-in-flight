@@ -179,41 +179,6 @@ orch_result <- run_schedule(
 )
 ```
 
-```{r}
-#| echo: false
-#| output: false
-# Located in ./orchestrator.R
-library(maestro)
-
-schedule <- build_schedule()
-
-orch_result <- run_schedule(
-  schedule,
-  orch_frequency = "1 day",
-  check_datetime = lubridate::now(tzone = "America/Halifax")
-)
-```
-
-### What we get back
-
-We can see from the console output that the pipeline ran successfully. If we save it to a variable we get back a list with elements called and `status` and `artifacts`.
-
-#### \$status
-
-The `$status` element is a data.frame where each row is a pipeline. It has information about the status and runtime of each pipeline.
-
-```{r}
-orch_result$status
-```
-
-#### \$artifacts
-
-`$artifacts` is where any return values from the pipelines will be. In our case, it's the test sample of data inserted into the table:
-
-```{r}
-orch_result$artifacts[[1]]
-```
-
 ## Deployment
 
 Ok, so we ran the orchestrator interactively, but this is only useful for testing. In practice, we want to deploy this on a server and have it run every day. To be clear: maestro does *not* do this for you - it just assumes that you are doing this and behaves accordingly. In other words, when you declare `orch_frequency = "1 day"` you are saying that you *intend* to run the orchestrator every 1 day.

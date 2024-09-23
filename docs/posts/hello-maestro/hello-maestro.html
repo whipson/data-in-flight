@@ -194,7 +194,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div>
       <div class="quarto-title-meta-heading">Modified</div>
       <div class="quarto-title-meta-contents">
-        <p class="date-modified">August 26, 2024</p>
+        <p class="date-modified">September 23, 2024</p>
       </div>
     </div>
       
@@ -340,67 +340,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="asciicast" style="color: #B9C0CB;font-family: 'Fira Code',Monaco,Consolas,Menlo,'Bitstream Vera Sans Mono','Powerline Symbols',monospace;line-height: 1.300000">
 <pre><span style="color: #66C2CD;">ℹ</span> 1 script successfully parsed                                                  
                                                                                 
-── Running pipelines <span style="color: #A8CC8C;">▶</span>                                                          
-<span style="color: #A8CC8C;">✔</span> <span style="color: #6F7783;">./pipelines/my_pipe.R</span> <span style="color: #71BEF2;">geomet_stations</span> <span style="color: #b8b8b8;">[749ms]</span>                                 
+── [2024-09-23 10:29:02]                                                        
+Running pipelines <span style="color: #A8CC8C;">▶</span>                                                             
+<span style="color: #A8CC8C;">✔</span> <span style="color: #71BEF2;">geomet_stations</span> <span style="color: #b8b8b8;">[566ms]</span>                                                       
                                                                                 
-── Pipeline execution completed <span style="color: #6F7783;">■</span> | 0.761 sec elapsed                           
+── [2024-09-23 10:29:02]                                                        
+Pipeline execution completed <span style="color: #6F7783;">■</span> | 0.57 sec elapsed                               
 <span style="color: #A8CC8C;">✔</span> 1 success | <span style="color: #282D35;">→</span> 0 skipped | <span style="color: #D290E4;">!</span> 0 warnings | <span style="color: #E88388;">✖</span> 0 errors | <span style="color: #66C2CD;">◼</span> 1 total               
 ────────────────────────────────────────────────────────────────────────────────
                                                                                 
 ── Next scheduled pipelines <span style="color: #66C2CD;">❯</span>                                                   
 Pipe name | Next scheduled run                                                  
-• geomet_stations | 2024-06-21                                                  
+• geomet_stations | 2024-09-25                                                  
 </pre>
 </div>
 </div>
-</section>
-<section id="what-we-get-back" class="level3">
-<h3 class="anchored" data-anchor-id="what-we-get-back">What we get back</h3>
-<p>We can see from the console output that the pipeline ran successfully. If we save it to a variable we get back a list with elements called and <code>status</code> and <code>artifacts</code>.</p>
-<section id="status" class="level4">
-<h4 class="anchored" data-anchor-id="status">$status</h4>
-<p>The <code>$status</code> element is a data.frame where each row is a pipeline. It has information about the status and runtime of each pipeline.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>orch_result<span class="sc">$</span>status</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 1 × 10
-  pipe_name  script_path invoked success pipeline_started    pipeline_ended     
-  &lt;chr&gt;      &lt;chr&gt;       &lt;lgl&gt;   &lt;lgl&gt;   &lt;dttm&gt;              &lt;dttm&gt;             
-1 geomet_st… ./pipeline… TRUE    TRUE    2024-06-19 14:50:51 2024-06-19 14:50:51
-# ℹ 4 more variables: errors &lt;int&gt;, warnings &lt;int&gt;, messages &lt;int&gt;,
-#   next_run &lt;dttm&gt;</code></pre>
-</div>
-</div>
-</section>
-<section id="artifacts" class="level4">
-<h4 class="anchored" data-anchor-id="artifacts">$artifacts</h4>
-<p><code>$artifacts</code> is where any return values from the pipelines will be. In our case, it’s the test sample of data inserted into the table:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>orch_result<span class="sc">$</span>artifacts[[<span class="dv">1</span>]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 10 × 33
-   wmo_identifier   longitude fre_stn_operator_name                 display_code
-   &lt;chr&gt;                &lt;int&gt; &lt;chr&gt;                                        &lt;int&gt;
- 1 &lt;NA&gt;           -1114200000 &lt;NA&gt;                                             8
- 2 &lt;NA&gt;           -1140700000 &lt;NA&gt;                                             4
- 3 &lt;NA&gt;           -1114500000 &lt;NA&gt;                                             9
- 4 &lt;NA&gt;           -1120200000 &lt;NA&gt;                                             4
- 5 &lt;NA&gt;           -1105000000 &lt;NA&gt;                                             6
- 6 71634           -653552000 Environnement et Changement climatiq…           NA
- 7 &lt;NA&gt;            -633931040 &lt;NA&gt;                                            NA
- 8 &lt;NA&gt;            -640340090 Réseau coopératif de stations climat…           NA
- 9 71603           -660517000 NAV Canada                                      NA
-10 71706           -630709000 NAV Canada                                      NA
-# ℹ 29 more variables: eng_stn_operator_acronym &lt;chr&gt;,
-#   fre_stn_operator_acronym &lt;chr&gt;, mly_first_date &lt;chr&gt;, hly_first_date &lt;chr&gt;,
-#   fre_prov_name &lt;chr&gt;, country &lt;chr&gt;, climate_identifier &lt;chr&gt;,
-#   publication_code &lt;int&gt;, timezone &lt;chr&gt;, last_date &lt;chr&gt;,
-#   hly_last_date &lt;chr&gt;, has_hourly_data &lt;chr&gt;, elevation &lt;chr&gt;, stn_id &lt;int&gt;,
-#   dly_first_date &lt;chr&gt;, dly_last_date &lt;chr&gt;, eng_stn_operator_name &lt;chr&gt;,
-#   station_name &lt;chr&gt;, eng_prov_name &lt;chr&gt;, mly_last_date &lt;chr&gt;, …</code></pre>
-</div>
-</div>
-</section>
 </section>
 </section>
 <section id="deployment" class="level2">
@@ -411,33 +365,33 @@ Pipe name | Next scheduled run
 <h4 class="anchored" data-anchor-id="maclinux-cronr">Mac/Linux: cronR</h4>
 <p>Cron is a job scheduler for the Mac/Linux systems. You can use <code>cronR</code> to interface with it via R.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cronR)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>cmd <span class="ot">&lt;-</span> <span class="fu">cron_rscript</span>(</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"orchestrator.R"</span>, </span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">workdir =</span> <span class="fu">getwd</span>()</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cron_add</span>(</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  cmd, </span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">frequency =</span> <span class="st">"daily"</span>,</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="st">"maestro"</span>,</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">ask =</span> <span class="cn">FALSE</span></span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cronR)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>cmd <span class="ot">&lt;-</span> <span class="fu">cron_rscript</span>(</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"orchestrator.R"</span>, </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">workdir =</span> <span class="fu">getwd</span>()</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cron_add</span>(</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  cmd, </span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">frequency =</span> <span class="st">"daily"</span>,</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="st">"maestro"</span>,</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">ask =</span> <span class="cn">FALSE</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="windows-taskscheduler" class="level4">
 <h4 class="anchored" data-anchor-id="windows-taskscheduler">Windows: taskscheduleR</h4>
 <p>Windows users can use <code>taskscheduleR</code> to schedule a job via R:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(taskscheduleR)</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">taskscheduler_create</span>(</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">taskname =</span> <span class="st">"maestro"</span>, </span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">rscript =</span> <span class="st">"orchestrator.R"</span>, </span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">schedule =</span> <span class="st">"DAILY"</span>,</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">exec_path =</span> <span class="fu">getwd</span>()</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(taskscheduleR)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">taskscheduler_create</span>(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">taskname =</span> <span class="st">"maestro"</span>, </span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">rscript =</span> <span class="st">"orchestrator.R"</span>, </span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">schedule =</span> <span class="st">"DAILY"</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">exec_path =</span> <span class="fu">getwd</span>()</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
@@ -452,7 +406,7 @@ Pipe name | Next scheduled run
 <p>That said, I think maestro is great for small-medium sized pipeline orchestration. If you’re looking to deploy maestro on the cloud, this <a href="../../posts/maestro-gcp-deployment/maestro-gcp-deployment.html">blog post</a> will help you get started in Google Compute Platform (GCP).</p>
 <section id="notes" class="level4">
 <h4 class="anchored" data-anchor-id="notes">Notes</h4>
-<p>This post was created using R version 4.4.1 (2024-06-14) and maestro version 0.1.2.</p>
+<p>This post was created using R version 4.4.1 (2024-06-14) and maestro version 0.3.0.9000.</p>
 
 
 </section>
