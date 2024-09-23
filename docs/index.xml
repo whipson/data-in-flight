@@ -139,14 +139,14 @@ font-style: inherit;">"daily"</span></span>
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2024-09-23 11:15:50]
+<pre><code>── [2024-09-23 14:28:46]
 Running pipelines ▶ </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>ℹ my_pipe</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe [5ms]</code></pre>
+<pre><code>✔ my_pipe [8ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
@@ -155,14 +155,14 @@ Running pipelines ▶ </code></pre>
 <pre><code>ℹ my_pipe3</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe3 [61ms]</code></pre>
+<pre><code>✔ my_pipe3 [18ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2024-09-23 11:15:50]
-Pipeline execution completed ■ | 0.078 sec elapsed </code></pre>
+<pre><code>── [2024-09-23 14:28:46]
+Pipeline execution completed ■ | 0.129 sec elapsed </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>✔ 2 successes | → 1 skipped | ! 0 warnings | ✖ 0 errors | ◼ 3 total</code></pre>
@@ -198,9 +198,9 @@ font-style: inherit;">get_status</span>(schedule)</span></code></pre></div>
 <pre><code># A tibble: 3 × 10
   pipe_name script_path  invoked success pipeline_started    pipeline_ended     
   &lt;chr&gt;     &lt;chr&gt;        &lt;lgl&gt;   &lt;lgl&gt;   &lt;dttm&gt;              &lt;dttm&gt;             
-1 my_pipe   ./pipelines… TRUE    TRUE    2024-09-23 14:15:50 2024-09-23 14:15:50
+1 my_pipe   ./pipelines… TRUE    TRUE    2024-09-23 17:28:46 2024-09-23 17:28:46
 2 my_pipe2  ./pipelines… FALSE   FALSE   NA                  NA                 
-3 my_pipe3  ./pipelines… TRUE    TRUE    2024-09-23 14:15:50 2024-09-23 14:15:50
+3 my_pipe3  ./pipelines… TRUE    TRUE    2024-09-23 17:28:46 2024-09-23 17:28:46
 # ℹ 4 more variables: errors &lt;int&gt;, warnings &lt;int&gt;, messages &lt;int&gt;,
 #   next_run &lt;dttm&gt;</code></pre>
 </div>
@@ -246,7 +246,7 @@ font-style: inherit;">"my_pipe"</span>)</span></code></pre></div>
 <pre><code>ℹ my_pipe</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe [4ms]</code></pre>
+<pre><code>✔ my_pipe [5ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
@@ -1238,7 +1238,7 @@ font-style: inherit;">getwd</span>()</span>
 <p>That said, I think maestro is great for small-medium sized pipeline orchestration. If you’re looking to deploy maestro on the cloud, this <a href="../../posts/maestro-gcp-deployment/maestro-gcp-deployment.html">blog post</a> will help you get started in Google Compute Platform (GCP).</p>
 <section id="notes" class="level4">
 <h4 class="anchored" data-anchor-id="notes">Notes</h4>
-<p>This post was created using R version 4.4.1 (2024-06-14) and maestro version 0.3.0.9000.</p>
+<p>This post was created using R version 4.4.1 (2024-06-14) and maestro version 0.3.0.</p>
 
 
 </section>
