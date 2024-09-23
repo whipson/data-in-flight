@@ -41,7 +41,7 @@ schedule <- build_schedule(quiet = TRUE)
 
 output <- run_schedule(
   schedule,
-  orch_frequency = "daily"
+  orch_frequency = "hourly"
 )
 ```
 

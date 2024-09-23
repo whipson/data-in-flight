@@ -242,39 +242,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>output <span class="ot">&lt;-</span> <span class="fu">run_schedule</span>(</span>
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  schedule,</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">orch_frequency =</span> <span class="st">"daily"</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">orch_frequency =</span> <span class="st">"hourly"</span></span>
 <span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2024-09-23 14:28:46]
+<pre><code>── [2024-09-23 14:31:34]
 Running pipelines ▶ </code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>ℹ my_pipe</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe [8ms]</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>ℹ my_pipe3</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe3 [18ms]</code></pre>
+<pre><code>✔ my_pipe3 [8ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2024-09-23 14:28:46]
-Pipeline execution completed ■ | 0.129 sec elapsed </code></pre>
+<pre><code>── [2024-09-23 14:31:34]
+Pipeline execution completed ■ | 0.101 sec elapsed </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ 2 successes | → 1 skipped | ! 0 warnings | ✖ 0 errors | ◼ 3 total</code></pre>
+<pre><code>✔ 1 success | → 2 skipped | ! 0 warnings | ✖ 0 errors | ◼ 3 total</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>────────────────────────────────────────────────────────────────────────────────</code></pre>
@@ -289,10 +280,10 @@ Pipeline execution completed ■ | 0.129 sec elapsed </code></pre>
 <pre><code>Pipe name | Next scheduled run</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>• my_pipe3 | 2024-09-24 02:00:00</code></pre>
+<pre><code>• my_pipe3 | 2024-09-23 20:00:00</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>• my_pipe | 2024-09-25</code></pre>
+<pre><code>• my_pipe | 2024-09-24</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>• my_pipe2 | 2024-09-30</code></pre>
@@ -300,21 +291,21 @@ Pipeline execution completed ■ | 0.129 sec elapsed </code></pre>
 </div>
 <p>So far these are the same steps as before. The difference is now in how we interact with the schedule. Here, <code>schedule</code> is no longer a data.frame, it’s a <code>&lt;MaestroSchedule&gt;</code> R6 object. If we want to get the status of each of the pipelines, we can use the new <code>get_status()</code> function:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_status</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_status</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 3 × 10
   pipe_name script_path  invoked success pipeline_started    pipeline_ended     
   &lt;chr&gt;     &lt;chr&gt;        &lt;lgl&gt;   &lt;lgl&gt;   &lt;dttm&gt;              &lt;dttm&gt;             
-1 my_pipe   ./pipelines… TRUE    TRUE    2024-09-23 17:28:46 2024-09-23 17:28:46
+1 my_pipe   ./pipelines… FALSE   FALSE   NA                  NA                 
 2 my_pipe2  ./pipelines… FALSE   FALSE   NA                  NA                 
-3 my_pipe3  ./pipelines… TRUE    TRUE    2024-09-23 17:28:46 2024-09-23 17:28:46
+3 my_pipe3  ./pipelines… TRUE    TRUE    2024-09-23 17:31:34 2024-09-23 17:31:34
 # ℹ 4 more variables: errors &lt;int&gt;, warnings &lt;int&gt;, messages &lt;int&gt;,
 #   next_run &lt;dttm&gt;</code></pre>
 </div>
 </div>
 <p>If we just want the schedule, we can use <code>get_schedule()</code>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_schedule</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_schedule</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 3 × 9
   script_path      pipe_name frequency start_time          tz    skip  log_level
@@ -328,7 +319,7 @@ Pipeline execution completed ■ | 0.129 sec elapsed </code></pre>
 <p>Note that we didn’t have to assign a new object when we ran <code>run_schedule()</code>. The object <code>schedule</code> is updated to reflect the execution of the schedule.</p>
 <p>If any pipelines have return values, we can access those as a named list using <code>get_artifacts()</code>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_artifacts</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_artifacts</span>(schedule)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>named list()</code></pre>
 </div>
@@ -338,12 +329,12 @@ Pipeline execution completed ■ | 0.129 sec elapsed </code></pre>
 <h2 class="anchored" data-anchor-id="invoking-a-pipeline">Invoking a pipeline</h2>
 <p>When interactively working in a maestro project, it may sometimes be useful to manually trigger a pipeline. Now, if you’ve created a <code>&lt;MaestroSchedule&gt;</code> object in the environment, you can do this using <code>invoke()</code>. This will execute the pipeline regardless of whether it’s scheduled or not.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">invoke</span>(schedule, <span class="at">pipe_name =</span> <span class="st">"my_pipe"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">invoke</span>(schedule, <span class="at">pipe_name =</span> <span class="st">"my_pipe"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>ℹ my_pipe</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe [5ms]</code></pre>
+<pre><code>✔ my_pipe [6ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
