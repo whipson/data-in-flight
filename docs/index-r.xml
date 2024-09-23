@@ -133,39 +133,30 @@ font-style: inherit;">run_schedule</span>(</span>
 background-color: null;
 font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"daily"</span></span>
+font-style: inherit;">"hourly"</span></span>
 <span id="cb2-19">)</span></code></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2024-09-23 11:15:50]
+<pre><code>── [2024-09-23 14:31:34]
 Running pipelines ▶ </code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>ℹ my_pipe</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe [5ms]</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>ℹ my_pipe3</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe3 [61ms]</code></pre>
+<pre><code>✔ my_pipe3 [8ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2024-09-23 11:15:50]
-Pipeline execution completed ■ | 0.078 sec elapsed </code></pre>
+<pre><code>── [2024-09-23 14:31:34]
+Pipeline execution completed ■ | 0.101 sec elapsed </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ 2 successes | → 1 skipped | ! 0 warnings | ✖ 0 errors | ◼ 3 total</code></pre>
+<pre><code>✔ 1 success | → 2 skipped | ! 0 warnings | ✖ 0 errors | ◼ 3 total</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>────────────────────────────────────────────────────────────────────────────────</code></pre>
@@ -180,10 +171,10 @@ Pipeline execution completed ■ | 0.078 sec elapsed </code></pre>
 <pre><code>Pipe name | Next scheduled run</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>• my_pipe3 | 2024-09-24 02:00:00</code></pre>
+<pre><code>• my_pipe3 | 2024-09-23 20:00:00</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>• my_pipe | 2024-09-25</code></pre>
+<pre><code>• my_pipe | 2024-09-24</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>• my_pipe2 | 2024-09-30</code></pre>
@@ -191,23 +182,23 @@ Pipeline execution completed ■ | 0.078 sec elapsed </code></pre>
 </div>
 <p>So far these are the same steps as before. The difference is now in how we interact with the schedule. Here, <code>schedule</code> is no longer a data.frame, it’s a <code>&lt;MaestroSchedule&gt;</code> R6 object. If we want to get the status of each of the pipelines, we can use the new <code>get_status()</code> function:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><span class="fu" style="color: #4758AB;
+<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">get_status</span>(schedule)</span></code></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 3 × 10
   pipe_name script_path  invoked success pipeline_started    pipeline_ended     
   &lt;chr&gt;     &lt;chr&gt;        &lt;lgl&gt;   &lt;lgl&gt;   &lt;dttm&gt;              &lt;dttm&gt;             
-1 my_pipe   ./pipelines… TRUE    TRUE    2024-09-23 14:15:50 2024-09-23 14:15:50
+1 my_pipe   ./pipelines… FALSE   FALSE   NA                  NA                 
 2 my_pipe2  ./pipelines… FALSE   FALSE   NA                  NA                 
-3 my_pipe3  ./pipelines… TRUE    TRUE    2024-09-23 14:15:50 2024-09-23 14:15:50
+3 my_pipe3  ./pipelines… TRUE    TRUE    2024-09-23 17:31:34 2024-09-23 17:31:34
 # ℹ 4 more variables: errors &lt;int&gt;, warnings &lt;int&gt;, messages &lt;int&gt;,
 #   next_run &lt;dttm&gt;</code></pre>
 </div>
 </div>
 <p>If we just want the schedule, we can use <code>get_schedule()</code>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb22" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><span class="fu" style="color: #4758AB;
+<div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">get_schedule</span>(schedule)</span></code></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -223,7 +214,7 @@ font-style: inherit;">get_schedule</span>(schedule)</span></code></pre></div>
 <p>Note that we didn’t have to assign a new object when we ran <code>run_schedule()</code>. The object <code>schedule</code> is updated to reflect the execution of the schedule.</p>
 <p>If any pipelines have return values, we can access those as a named list using <code>get_artifacts()</code>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb24" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><span class="fu" style="color: #4758AB;
+<div class="sourceCode cell-code" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">get_artifacts</span>(schedule)</span></code></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -235,7 +226,7 @@ font-style: inherit;">get_artifacts</span>(schedule)</span></code></pre></div>
 <h2 class="anchored" data-anchor-id="invoking-a-pipeline">Invoking a pipeline</h2>
 <p>When interactively working in a maestro project, it may sometimes be useful to manually trigger a pipeline. Now, if you’ve created a <code>&lt;MaestroSchedule&gt;</code> object in the environment, you can do this using <code>invoke()</code>. This will execute the pipeline regardless of whether it’s scheduled or not.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb26" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><span class="fu" style="color: #4758AB;
+<div class="sourceCode cell-code" id="cb23" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">invoke</span>(schedule, <span class="at" style="color: #657422;
 background-color: null;
@@ -246,7 +237,7 @@ font-style: inherit;">"my_pipe"</span>)</span></code></pre></div>
 <pre><code>ℹ my_pipe</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ my_pipe [4ms]</code></pre>
+<pre><code>✔ my_pipe [6ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
@@ -1151,7 +1142,7 @@ font-style: inherit;">getwd</span>()</span>
 <p>That said, I think maestro is great for small-medium sized pipeline orchestration. If you’re looking to deploy maestro on the cloud, this <a href="../../posts/maestro-gcp-deployment/maestro-gcp-deployment.html">blog post</a> will help you get started in Google Compute Platform (GCP).</p>
 <section id="notes" class="level4">
 <h4 class="anchored" data-anchor-id="notes">Notes</h4>
-<p>This post was created using R version 4.4.1 (2024-06-14) and maestro version 0.3.0.9000.</p>
+<p>This post was created using R version 4.4.1 (2024-06-14) and maestro version 0.3.0.</p>
 
 
 </section>

@@ -540,14 +540,9 @@
     },
     "maestro": {
       "Package": "maestro",
-      "Version": "0.3.0.9000",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteRepo": "maestro",
-      "RemoteUsername": "whipson",
-      "RemoteRef": "HEAD",
-      "RemoteSha": "6639b9d62c9891be24671e92d18454d8fe5f704d",
+      "Version": "0.3.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
       "Requirements": [
         "R",
         "R.utils",
@@ -565,7 +560,7 @@
         "timechange",
         "utils"
       ],
-      "Hash": "7706e4c872246d8d884d04169c730c1c"
+      "Hash": "8fca197fa928ed460489ae41dc7a6ea7"
     },
     "magick": {
       "Package": "magick",
