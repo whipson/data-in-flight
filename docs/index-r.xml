@@ -10,7 +10,322 @@
 <atom:link href="https://whipson.github.io/data-in-flight/index-r.xml" rel="self" type="application/rss+xml"/>
 <description>scrappy data engineering</description>
 <generator>quarto-1.5.56</generator>
-<lastBuildDate>Mon, 23 Sep 2024 03:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 22 Nov 2024 04:00:00 GMT</lastBuildDate>
+<item>
+  <title>Chain your maestro pipelines DAG style</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/maestro-dags/main.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>I’m thrilled to introduce the biggest maestro update yet. DAGs! A DAG (directed acyclic graph) in the context of data pipelines is when you have data processing steps that connect into other steps until a final step is reached. Almost all data orchestration platforms use the concept of DAGs to increase reusability and isolation of discrete components. As of maestro 0.4.0, DAGs are now possible using <code>maestroInputs</code> and <code>maestroOutputs</code> tags. This post will go through the motivation and implementation of this new feature.</p>
+<p>If you haven’t heard of maestro, it’s a package that helps you schedule your R scripts all in a single project using tags. You can learn more about it <a href="../../posts/hello-maestro/hello-maestro.html">here</a>.</p>
+<p>Get it from CRAN:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">install.packages</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"maestro"</span>)</span></code></pre></div>
+</div>
+<section id="why-dags" class="level2">
+<h2 class="anchored" data-anchor-id="why-dags">Why DAGs?</h2>
+<p>Let’s imagine we have a data pipeline where we want to extract data, clean/transform it, train a model, and send the predictions to a database. We can take each of these steps and chain them together so that the output of ‘extract’ is automatically fed into ‘clean/transform’, and so on.</p>
+<p>The advantage of doing this in maestro is that you get better observability and retracability along each step. As we’ll see, we can more clearly identify where errors occur and even recover intermediate results.</p>
+</section>
+<section id="dags-in-maestro" class="level2">
+<h2 class="anchored" data-anchor-id="dags-in-maestro">DAGs in maestro</h2>
+<p>In short, a DAG pipeline is created using either <code>maestroInputs</code> or <code>maestroOutputs</code> tags. Both are valid but usually only one is needed. Simply put, a pipeline with a tag <code>#' @maestroInputs start_pipe</code> receives the output from a pipeline called <code>start_pipe</code>. Alternatively, we could use <code>#' @maestroOutputs end_pipe</code> to indicate that the pipeline called <code>end_pipe</code> receives the input of the current pipeline.</p>
+<p>Let’s see an example where we make model predictions on the <code>nycflights13</code> data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' /pipelines/model_flights.R</span></span>
+<span id="cb2-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency daily</span></span>
+<span id="cb2-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2024-11-22 09:00:00</span></span>
+<span id="cb2-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroOutputs process_flights</span></span>
+<span id="cb2-5">extract_flights <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-6">  </span>
+<span id="cb2-7">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Imagine this is from a source where the data changes</span></span>
+<span id="cb2-8">  nycflights13<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>flights</span>
+<span id="cb2-9">}</span>
+<span id="cb2-10"></span>
+<span id="cb2-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroOutputs train_model</span></span>
+<span id="cb2-12">process_flights <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(.input) {</span>
+<span id="cb2-13">  </span>
+<span id="cb2-14">  daily_flights <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> .input <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-15">    dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">date =</span> lubridate<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">make_date</span>(year, month, day)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-16">    dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summarise</span>(</span>
+<span id="cb2-17">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n_flights =</span> dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">n</span>(), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.by =</span> date</span>
+<span id="cb2-18">    )</span>
+<span id="cb2-19">  </span>
+<span id="cb2-20">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># A simple time series</span></span>
+<span id="cb2-21">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ts</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> daily_flights<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>n_flights, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">frequency =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">365</span>)</span>
+<span id="cb2-22">}</span>
+<span id="cb2-23"></span>
+<span id="cb2-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroOutputs forecast_flights</span></span>
+<span id="cb2-25">train_model <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(.input) {</span>
+<span id="cb2-26">  </span>
+<span id="cb2-27">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># A simple ARIMA model (using the {forecast} package would be better)</span></span>
+<span id="cb2-28">  .input <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-29">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arima</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">order =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))</span>
+<span id="cb2-30">}</span>
+<span id="cb2-31"></span>
+<span id="cb2-32"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestro</span></span>
+<span id="cb2-33">forecast_flights <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(.input) {</span>
+<span id="cb2-34">  </span>
+<span id="cb2-35">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Forecast the next 7 days</span></span>
+<span id="cb2-36">  pred_obj <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">predict</span>(.input, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n.ahead =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb2-37">  pred_obj<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>pred</span>
+<span id="cb2-38">}</span></code></pre></div>
+</div>
+<p>We won’t focus much on the content of the functions. Instead, pay attention to the use of <code>maestroOutputs</code>. Each function that outputs into another references the name of that function. The last function <code>forecast_flights</code> just uses a generic <code>#' @maestro</code> tag to indicate that it is part of the maestro project. Also note the use of the special keyword <code>.input</code>. This argument must be supplied to all functions receiving an input. Use this argument to capture the data being passed each step along the pipeline.</p>
+<p>Now we can build the schedule like always.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># /orchestrator.R</span></span>
+<span id="cb3-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span>
+<span id="cb3-3"></span>
+<span id="cb3-4">schedule <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">build_schedule</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span></code></pre></div>
+</div>
+<p>We can verify that the DAG is properly defined using the <code>show_network()</code> function on our newly created schedule.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">show_network</span>(schedule)</span></code></pre></div>
+<div class="cell-output-display">
+<div class="grViz html-widget html-fill-item" id="htmlwidget-f479831f88694cd7c32c" style="width:100%;height:464px;"></div>
+<script type="application/json" data-for="htmlwidget-f479831f88694cd7c32c">{"x":{"diagram":"digraph {\n\ngraph [layout = \"neato\",\n       outputorder = \"edgesfirst\",\n       bgcolor = \"white\"]\n\nnode [fontname = \"Helvetica\",\n      fontsize = \"10\",\n      shape = \"circle\",\n      fixedsize = \"true\",\n      width = \"0.5\",\n      style = \"filled\",\n      fillcolor = \"aliceblue\",\n      color = \"gray70\",\n      fontcolor = \"gray50\"]\n\nedge [fontname = \"Helvetica\",\n     fontsize = \"8\",\n     len = \"1.5\",\n     color = \"gray80\",\n     arrowsize = \"0.5\"]\n\n  \"1\" [label = \"extract_flights\", fillcolor = \"#F0F8FF\", fontcolor = \"#000000\", pos = \"0,4!\"] \n  \"2\" [label = \"process_flights\", fillcolor = \"#F0F8FF\", fontcolor = \"#000000\", pos = \"0,3!\"] \n  \"3\" [label = \"train_model\", fillcolor = \"#F0F8FF\", fontcolor = \"#000000\", pos = \"0,2!\"] \n  \"4\" [label = \"forecast_flights\", fillcolor = \"#F0F8FF\", fontcolor = \"#000000\", pos = \"0,1!\"] \n  \"1\"->\"2\" \n  \"2\"->\"3\" \n  \"3\"->\"4\" \n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<p>Now we can run the schedule. For testing purposes, we’ll set <code>run_all = TRUE</code> so that the pipeline runs no matter what the scheduling is.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_schedule</span>(</span>
+<span id="cb5-2">  schedule,</span>
+<span id="cb5-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">run_all =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb5-4">)</span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── [2024-11-22 14:25:11]
+Running pipelines ▶ </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ extract_flights</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ extract_flights [768ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ |-process_flights</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ |-process_flights [24ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ   |-train_model</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔   |-train_model [9ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ   |-  |-forecast_flights</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔   |-  |-forecast_flights [5ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── [2024-11-22 14:25:11]
+Pipeline execution completed ■ | 0.833 sec elapsed </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ 4 successes | → 0 skipped | ! 0 warnings | ✖ 0 errors | ◼ 4 total</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Maestro Schedule with 4 pipelines:  </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>• Success</code></pre>
+</div>
+</div>
+<p>We can see from the console output that the whole pipeline ran successfully. If we want to get the output from each of the steps, we can use <code>get_artifacts()</code>. This returns intermediate results too, which can be helpful if you want to retrieve state after a failed run of the schedule.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1">artifacts <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_artifacts</span>(schedule)</span>
+<span id="cb26-2">artifacts<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>forecast_flights</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Time Series:
+Start = c(2, 1) 
+End = c(2, 7) 
+Frequency = 365 
+[1] 942.7232 934.9722 933.7773 933.5931 933.5647 933.5603 933.5596</code></pre>
+</div>
+</div>
+<p>Maestro can be used to create any valid DAG (e.g., branching, joining, etc.). I hope this new addition to maestro super charges your data orchestration.</p>
+<p>Check out the <a href="https://whipson.github.io/maestro/news/index.html">release notes</a> for more details on what’s new in version 0.4.0. If you find any bugs or want to suggest new features and improvements, please add them <a href="https://github.com/whipson/maestro/issues">here</a> or reach out to me on <a href="https://www.linkedin.com/in/will-hipson/">LinkedIn</a>.</p>
+<p>Happy orchestrating!</p>
+
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>packages</category>
+  <category>release</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/maestro-dags/main.html</guid>
+  <pubDate>Fri, 22 Nov 2024 04:00:00 GMT</pubDate>
+</item>
 <item>
   <title>maestro 0.3.0</title>
   <dc:creator>Will Hipson</dc:creator>
