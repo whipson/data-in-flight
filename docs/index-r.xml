@@ -9,8 +9,1414 @@
 <link>https://whipson.github.io/data-in-flight/#category=R</link>
 <atom:link href="https://whipson.github.io/data-in-flight/index-r.xml" rel="self" type="application/rss+xml"/>
 <description>scrappy data engineering</description>
-<generator>quarto-1.5.56</generator>
-<lastBuildDate>Fri, 22 Nov 2024 04:00:00 GMT</lastBuildDate>
+<generator>quarto-1.7.13</generator>
+<lastBuildDate>Wed, 26 Feb 2025 04:00:00 GMT</lastBuildDate>
+<item>
+  <title>You Don’t Need Airflow: Orchestrate Many Data Flows in R with Maestro</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/you-dont-need-airflow/main.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Data never stays in one place for long. Any business or team that works with data needs to be thinking about how data moves from one place to the next. This often happens multiple times, continuously, and in multiple different streams. The concept of moving data is data flow<sup>1</sup>. When you have many data flows that need to be managed it’s called data orchestration. More specifically, data orchestration is the process of automating the ingestion, transformation, and analysis of data from multiple different locations and then making it widely accessible to users.</p>
+<p>If you look at data orchestration tools today you are bombarded with a dizzying array of software platforms that claim unsurpassed processing capability, AI-readiness, elegant UIs, etc. Apache Airflow is just one example of a popular orchestration platform that scales to meet virtually any orchestration need. And while these claims may be true, I argue it is rarely the case that these gargantuan platforms are needed in the first place. For most data engineers, you probably only need to process a moderate amount of data at a moderate time scale. Moreover, if you’re an R user, you don’t want to have to define your data pipelines using drag-and-drop tools or learn another programming language. Not only will this reduce cloud costs but also development time costs.</p>
+<p>This was the inspiration for <a href="https://whipson.github.io/maestro/">maestro</a> - an R package for orchestrating data jobs within a single project. Here I’ll demonstrate a maestro project and how the cost of deploying it likely compares to other data orchestration platforms currently available.</p>
+<p>In this example, I’ll use open data from Cornell Lab’s <a href="https://documenter.getpostman.com/view/664302/S1ENwy59">eBird API</a> providing free access to global bird observations and statistics. Note that a user account and API key are required to access the API.</p>
+<section id="maestro" class="level2">
+<h2 class="anchored" data-anchor-id="maestro">Maestro</h2>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Check out the <a href="https://whipson.github.io/maestro/index.html">maestro docs</a> for a more detailed introduction to maestro.</p>
+</div>
+</div>
+<p>A maestro project consists of one or more pipelines (i.e., R functions with roxygen tags) and a single orchestrator script responsible for invoking the pipelines according to a schedule.</p>
+<p>The project structure will look something like this:</p>
+<pre><code>sample_project
+├── orchestrator.R
+└── pipelines
+    ├── get_nearby_notable_obs.R
+    ├── get_region_stats.R
+    └── get_species_list.R</code></pre>
+<section id="pipelines" class="level3">
+<h3 class="anchored" data-anchor-id="pipelines">Pipelines</h3>
+<p>I’ve created three pipelines that each retrieve data from one of the eBird endpoints and stores it in a <a href="https://motherduck.com/duckdb-book-brief/?utm_campaign=manning4&amp;utm_medium=paid&amp;utm_source=google&amp;utm_content=sponsored_ad&amp;utm_term=duckdb&amp;utm_campaign=DuckDB+In+Action+%7C+Landing+Page+Test+%7C+US+%26+Canada&amp;utm_source=adwords&amp;utm_medium=ppc&amp;hsa_acc=6957541599&amp;hsa_cam=21716136677&amp;hsa_grp=169023858473&amp;hsa_ad=713954371320&amp;hsa_src=g&amp;hsa_tgt=kwd-1637281685009&amp;hsa_kw=duckdb&amp;hsa_mt=b&amp;hsa_net=adwords&amp;hsa_ver=3&amp;gad_source=1&amp;gclid=CjwKCAiA5eC9BhAuEiwA3CKwQtsR_YIV8w9EBIUbZZ_djYTL8VL-IBkFtuXNYHIaidYECqq_EbI7HRoCprMQAvD_BwE">duckdb</a> table. Each pipeline is scheduled to run at a particular time interval so that new data is regularly inserted into the table.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The <code>#' @maestroFrequency</code> is one of several tags that can be used to configure the scheduling of the pipeline. See <a href="https://whipson.github.io/maestro/articles/maestro-1-quick-start.html#anatomy-of-a-pipeline">here</a> for more details.</p>
+</div>
+</div>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs"><li class="nav-item"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" aria-controls="tabset-1-1" aria-selected="true">get_nearby_notable_obs.R</a></li><li class="nav-item"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" aria-controls="tabset-1-2" aria-selected="false">get_region_stats.R</a></li><li class="nav-item"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" aria-controls="tabset-1-3" aria-selected="false">get_species_list.R</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1" class="tab-pane active" aria-labelledby="tabset-1-1-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 3 hours</span></span>
+<span id="cb2-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2025-02-20 12:00:00</span></span>
+<span id="cb2-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroTz America/Halifax</span></span>
+<span id="cb2-4">get_nearby_notable_obs <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-5"></span>
+<span id="cb2-6">  req <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">request</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://api.ebird.org/v2"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-7">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_url_path_append</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data/obs/geo/recent/notable"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-8">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_url_query</span>(</span>
+<span id="cb2-9">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">lat =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">44.88</span>,</span>
+<span id="cb2-10">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">lng =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">63.52</span></span>
+<span id="cb2-11">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-12">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_headers</span>(</span>
+<span id="cb2-13">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">X-eBirdApiToken</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.getenv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EBIRD_API_KEY"</span>)</span>
+<span id="cb2-14">    )</span>
+<span id="cb2-15"></span>
+<span id="cb2-16">  resp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> req <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-17">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_perform</span>()</span>
+<span id="cb2-18"></span>
+<span id="cb2-19">  obs <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> resp <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-20">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">resp_body_json</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">simplifyVector =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-21">    dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb2-22">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">insert_time =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.time</span>()</span>
+<span id="cb2-23">    )</span>
+<span id="cb2-24"></span>
+<span id="cb2-25">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Connect to a local in-memory duckdb</span></span>
+<span id="cb2-26">  conn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(duckdb<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">duckdb</span>())</span>
+<span id="cb2-27">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">on.exit</span>(DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(conn))</span>
+<span id="cb2-28"></span>
+<span id="cb2-29">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create and write to a table</span></span>
+<span id="cb2-30">  DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbWriteTable</span>(</span>
+<span id="cb2-31">    conn,</span>
+<span id="cb2-32">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recent_notable_observations"</span>,</span>
+<span id="cb2-33">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value =</span> obs,</span>
+<span id="cb2-34">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">append =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb2-35">  )</span>
+<span id="cb2-36">}</span></code></pre></div>
+</div>
+</div>
+<div id="tabset-1-2" class="tab-pane" aria-labelledby="tabset-1-2-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 day</span></span>
+<span id="cb3-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2025-02-20 18:00:00</span></span>
+<span id="cb3-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroTz America/Halifax</span></span>
+<span id="cb3-4">get_region_stats <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb3-5"></span>
+<span id="cb3-6">  now <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.time</span>()</span>
+<span id="cb3-7">  cur_year <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> lubridate<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">year</span>(now)</span>
+<span id="cb3-8">  cur_month <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> lubridate<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">month</span>(now)</span>
+<span id="cb3-9">  cur_day <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> lubridate<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">day</span>(now)</span>
+<span id="cb3-10"></span>
+<span id="cb3-11">  req <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">request</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://api.ebird.org/v2"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-12">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_url_path_append</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"product/stats"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"CA-NS"</span>, cur_year, cur_month, cur_day) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-13">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_headers</span>(</span>
+<span id="cb3-14">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">X-eBirdApiToken</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.getenv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EBIRD_API_KEY"</span>)</span>
+<span id="cb3-15">    )</span>
+<span id="cb3-16"></span>
+<span id="cb3-17">  resp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> req <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-18">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_perform</span>()</span>
+<span id="cb3-19"></span>
+<span id="cb3-20">  stats <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> resp <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-21">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">resp_body_json</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">simplifyVector =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-22">    dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as_tibble</span>()</span>
+<span id="cb3-23"></span>
+<span id="cb3-24">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Connect to a local in-memory duckdb</span></span>
+<span id="cb3-25">  conn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(duckdb<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">duckdb</span>())</span>
+<span id="cb3-26">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">on.exit</span>(DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(conn))</span>
+<span id="cb3-27"></span>
+<span id="cb3-28">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create and write to a table</span></span>
+<span id="cb3-29">  DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbWriteTable</span>(</span>
+<span id="cb3-30">    conn,</span>
+<span id="cb3-31">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"region_stats"</span>,</span>
+<span id="cb3-32">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value =</span> stats,</span>
+<span id="cb3-33">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">append =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb3-34">  )</span>
+<span id="cb3-35">}</span></code></pre></div>
+</div>
+</div>
+<div id="tabset-1-3" class="tab-pane" aria-labelledby="tabset-1-3-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 day</span></span>
+<span id="cb4-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2025-02-20 15:00:00</span></span>
+<span id="cb4-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroTz America/Halifax</span></span>
+<span id="cb4-4">get_species_list <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb4-5"></span>
+<span id="cb4-6">  req <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">request</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://api.ebird.org/v2"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-7">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_url_path_append</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"product/spplist"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"CA-NS"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-8">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_headers</span>(</span>
+<span id="cb4-9">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">X-eBirdApiToken</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.getenv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EBIRD_API_KEY"</span>)</span>
+<span id="cb4-10">    )</span>
+<span id="cb4-11"></span>
+<span id="cb4-12">  resp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> req <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-13">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_perform</span>()</span>
+<span id="cb4-14"></span>
+<span id="cb4-15">  spec_list <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> resp <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-16">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">resp_body_json</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">simplifyVector =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb4-17"></span>
+<span id="cb4-18">  spec_df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb4-19">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">speciesCode =</span> spec_list</span>
+<span id="cb4-20">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-21">    dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb4-22">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">insert_time =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.time</span>()</span>
+<span id="cb4-23">    )</span>
+<span id="cb4-24"></span>
+<span id="cb4-25">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Connect to a local in-memory duckdb</span></span>
+<span id="cb4-26">  conn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(duckdb<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">duckdb</span>())</span>
+<span id="cb4-27">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">on.exit</span>(DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(conn))</span>
+<span id="cb4-28"></span>
+<span id="cb4-29">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create and write to a table</span></span>
+<span id="cb4-30">  DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbWriteTable</span>(</span>
+<span id="cb4-31">    conn,</span>
+<span id="cb4-32">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"species_list"</span>,</span>
+<span id="cb4-33">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value =</span> spec_df,</span>
+<span id="cb4-34">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">append =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb4-35">  )</span>
+<span id="cb4-36">}</span></code></pre></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="orchestrator" class="level3">
+<h3 class="anchored" data-anchor-id="orchestrator">Orchestrator</h3>
+<p>With the pipelines created we move to the orchestrator script. This is an R script or Quarto document that runs maestro functions to create the schedule from the tags and the run the schedule according to some frequency - a frequency that should always be at least as frequent as your most frequent pipeline.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span>
+<span id="cb5-2"></span>
+<span id="cb5-3">schedule <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">build_schedule</span>()</span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ 3 scripts successfully parsed</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_schedule</span>(</span>
+<span id="cb7-2">  schedule, </span>
+<span id="cb7-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"1 hour"</span>,</span>
+<span id="cb7-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">check_datetime =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.POSIXct</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2025-02-26 15:00:00"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">tz =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"America/Halifax"</span>) <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># for reproducibility - in practice use Sys.time()</span></span>
+<span id="cb7-5">)</span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+── [2025-02-26 15:14:23]
+Running pipelines ▶ 
+ℹ get_nearby_notable_obs
+✔ get_nearby_notable_obs [758ms]
+
+ℹ get_species_list
+✔ get_species_list [108ms]
+
+
+── [2025-02-26 15:14:24]
+Pipeline execution completed ■ | 0.885 sec elapsed 
+✔ 2 successes | → 1 skipped | ! 0 warnings | ✖ 0 errors | ◼ 3 total
+────────────────────────────────────────────────────────────────────────────────
+
+── Next scheduled pipelines ❯ 
+Pipe name | Next scheduled run
+• get_nearby_notable_obs | 2025-02-26 22:00:00
+• get_region_stats | 2025-02-26 22:00:00
+• get_species_list | 2025-02-27 19:00:00
+
+── Maestro Schedule with 3 pipelines:  
+• Success</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1">status <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_status</span>(schedule)</span>
+<span id="cb9-2">status</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 10
+  pipe_name  script_path invoked success pipeline_started    pipeline_ended     
+  &lt;chr&gt;      &lt;chr&gt;       &lt;lgl&gt;   &lt;lgl&gt;   &lt;dttm&gt;              &lt;dttm&gt;             
+1 get_nearb… ./pipeline… TRUE    TRUE    2025-02-26 19:14:23 2025-02-26 19:14:24
+2 get_regio… ./pipeline… FALSE   FALSE   NA                  NA                 
+3 get_speci… ./pipeline… TRUE    TRUE    2025-02-26 19:14:24 2025-02-26 19:14:24
+# ℹ 4 more variables: errors &lt;int&gt;, warnings &lt;int&gt;, messages &lt;int&gt;,
+#   next_run &lt;dttm&gt;</code></pre>
+</div>
+</div>
+<p>We can run all this interactively, but the power of maestro is in running it scheduled in production. This way, the data will grow and update regularly. Deployment is not special in the case of maestro - you just need to be sure that the orchestrator is scheduled to run at the same frequency as specified in <code>orch_frequency</code>. Check out my <a href="../../posts/maestro-gcp-deployment/maestro-gcp-deployment.html">previous post</a> for a walk through of deployment on Google Cloud.</p>
+</section>
+</section>
+<section id="monitoring" class="level2">
+<h2 class="anchored" data-anchor-id="monitoring">Monitoring</h2>
+<p>In production it is essential to monitor the status of data flows so that issues can be identified and resolved. There are a few extra steps to set this up for maestro:</p>
+<ol type="1">
+<li>Store results of <code>get_status()</code> in a separate table.</li>
+<li>Create and host a visualization/dashboard with the pipeline statuses.</li>
+</ol>
+<p>Step 1 will involve adding a few lines of code in the orchestrator script. In our example using duckdb, it looks like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1">status <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_status</span>(schedule)</span>
+<span id="cb11-2"></span>
+<span id="cb11-3">conn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(duckdb<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">duckdb</span>())</span>
+<span id="cb11-4"></span>
+<span id="cb11-5">DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbWriteTable</span>(</span>
+<span id="cb11-6">  conn,</span>
+<span id="cb11-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"maestro_status"</span>,</span>
+<span id="cb11-8">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value =</span> status,</span>
+<span id="cb11-9">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">append =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb11-10">)</span>
+<span id="cb11-11"></span>
+<span id="cb11-12">DBI<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(conn)</span></code></pre></div>
+</div>
+<p>Here, I’ll simulate multiple runs of the orchestrator to make it seem like it had been running for a few days. In practice, you would just read the table containing the pipeline statuses.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set.seed</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">233</span>)</span>
+<span id="cb12-2">n_runs <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">24</span></span>
+<span id="cb12-3">last_run <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.POSIXct</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2025-02-26 15:00:00"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">tz =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"America/Halifax"</span>)</span>
+<span id="cb12-4">run_seq <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> last_run <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> lubridate<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">hours</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>n_runs)</span>
+<span id="cb12-5"></span>
+<span id="cb12-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># This leverages the lower-level MaestroPipeline class. This is almost never needed in practice</span></span>
+<span id="cb12-7">status_extended_ls <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> purrr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>(schedule<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>PipelineList<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>MaestroPipelines, \(x) {</span>
+<span id="cb12-8">  purrr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>(run_seq, \(y) {</span>
+<span id="cb12-9">    pipe_name <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_pipe_name</span>()</span>
+<span id="cb12-10">    run_pipe <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">check_timeliness</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_n =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_unit =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hour"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">check_datetime =</span> y)</span>
+<span id="cb12-11">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (run_pipe) {</span>
+<span id="cb12-12">      dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb12-13">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">pipe_name =</span> pipe_name,</span>
+<span id="cb12-14">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">invoked =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>,</span>
+<span id="cb12-15">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">success =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sample</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>), <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prob =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.8</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2</span>)),</span>
+<span id="cb12-16">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">pipeline_started =</span> y,</span>
+<span id="cb12-17">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">pipeline_ended =</span> pipeline_started <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> lubridate<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seconds</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sample</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.4</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">by =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.05</span>), <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)),</span>
+<span id="cb12-18">      )</span>
+<span id="cb12-19">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb12-20">      dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb12-21">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">pipe_name =</span> pipe_name,</span>
+<span id="cb12-22">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">invoked =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>,</span>
+<span id="cb12-23">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">success =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>,</span>
+<span id="cb12-24">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">pipeline_started =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span>,</span>
+<span id="cb12-25">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">pipeline_ended =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span></span>
+<span id="cb12-26">      )</span>
+<span id="cb12-27">    }</span>
+<span id="cb12-28">  }) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb12-29">    purrr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list_rbind</span>()</span>
+<span id="cb12-30">})</span>
+<span id="cb12-31"></span>
+<span id="cb12-32">status_extended_df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> purrr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list_rbind</span>(status_extended_ls)</span></code></pre></div>
+</details>
+</div>
+<p>There are many ways to visualize the status of pipelines. If the number of pipelines is small and your time window is similarly small you can get away with a static <em>ggplot.</em> The code below uses the simulated status data.frame to generate a simple Gantt chart where green indicates success and red failure.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(ggplot2)</span>
+<span id="cb13-2"></span>
+<span id="cb13-3">status_extended_df <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb13-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> pipeline_started, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb13-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_segment</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">xend =</span> pipeline_ended, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">yend =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">color =</span> success)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb13-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_color_manual</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"firebrick2"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"seagreen3"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb13-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">facet_wrap</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>pipe_name, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ncol =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb13-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(</span>
+<span id="cb13-9">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>,</span>
+<span id="cb13-10">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>,</span>
+<span id="cb13-11">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">title =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Pipeline Status"</span></span>
+<span id="cb13-12">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb13-13">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">guides</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">color =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"none"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb13-14">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb13-15">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme</span>(</span>
+<span id="cb13-16">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">axis.text.y =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">element_blank</span>()</span>
+<span id="cb13-17">  )</span></code></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/you-dont-need-airflow/main_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As the number of pipelines grows and/or you want more flexibility around time frame, you may want to build a dashboard with interactive figures. The below image is a screenshot of the dashboard I built using shiny at Halifax Stanfield International Airport that monitors the ~20 production pipelines in our environment.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/you-dont-need-airflow/images/maestro-pipeline-monitor.png" class="img-fluid figure-img"></p>
+<figcaption>Pipeline monitoring dashboard used in production at Halifax Stanfield International Airport</figcaption>
+</figure>
+</div>
+<p>It’s not hard to imagine a future extension package that creates these sorts of monitoring dashboards automatically.</p>
+<p>Now that we’ve seen how maestro works, let’s look at why we might want to use maestro over something like Airflow.</p>
+</section>
+<section id="maestro-reduces-cost" class="level2">
+<h2 class="anchored" data-anchor-id="maestro-reduces-cost">Maestro Reduces Cost</h2>
+<p>If you’re an R developer, the answer to the question <em>Why use Maestro</em> is obvious: <em>because I don’t need to use another language</em>. However, there are other reasons for preferring maestro over enterprise orchestration software like Airflow or Mage, chief among these being cost.<sup>2</sup></p>
+<p>There are two primary reasons why maestro saves on cloud bills:</p>
+<ol type="1">
+<li><strong>Maestro is serverless</strong> - it can scale down to zero when the orchestrator is not running. In other words, if the orchestrator frequency isn’t too high (~15 minutes or more) you don’t need to run it on a continuously available server. Something like AWS Lambda, Google Cloud Run, or Azure Functions would work just fine.</li>
+<li><strong>Maestro bundles multiple flows into a single instance</strong>. Assuming the number of flows and their frequencies doesn’t exceed limits you can run a moderate enterprise entirely within a single instance. No need to spin up and schedule separate instances for each data flow.<sup>3</sup></li>
+</ol>
+<p>Let’s compare a few scenarios for cost estimates. In all cases, we’ll imagine we have 10 production data flows that run at various intervals ranging from every hour to every day. The scenarios are:</p>
+<ol type="1">
+<li>Maestro running serverless every 1 hour</li>
+<li>Separate scripts running serverless on separate instances</li>
+<li>Running an Airflow project open-source in the cloud</li>
+<li>Orchestration platform provided by the cloud provider</li>
+</ol>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>These are back-of-the-napkin estimates based on conversations with ChatGPT and cloud computing documentation. Do not use these estimates as the sole basis for determining which tech stack will be more affordable. If I have made egregious errors in my estimates, please reach out to me via LinkedIn.</p>
+</div>
+</div>
+<p>I asked ChatGPT to provide estimates not specific to any one cloud provider (see appendix ChatGPT Conversation for conversation). The monthly costs in CAD are listed below:</p>
+<ol type="1">
+<li>Maestro-style serverless: <strong>$25-35</strong> ($35-45 if using multi-core)</li>
+<li>Separate scheduled serverless scripts: <strong>$110-130</strong></li>
+<li>Airflow: <strong>$170–200</strong></li>
+<li>Cloud managed: <strong>$80–100</strong></li>
+</ol>
+<p>This suggests a substantial cost savings for using a maestro-style architecture. Please note that these are estimates and are not substantiated by any experimentation. It’s worth considering that the costs appear to take into account storage but probably don’t account for image hosting, CI/CD, out-of-the-box monitoring, etc. that would likely come with fully featured orchestration platforms.</p>
+</section>
+<section id="maestro-eases-configuration-and-bolsters-metadata" class="level2">
+<h2 class="anchored" data-anchor-id="maestro-eases-configuration-and-bolsters-metadata">Maestro Eases Configuration and Bolsters Metadata</h2>
+<p>One of the challenges of orchestrating multiple data flows is keeping track of scheduling. Maestro eases this burden by requiring the scheduling configuration to be exactly where the pipeline is. This is not a new concept (Dagster uses decorators for scheduling) but it is rare to find in other platforms.<sup>4</sup> This also follows the practice of infrastructure-as-code which makes projects more portable and reproducible.</p>
+<p>I’m also discovering a new advantage to declaring pipeline configuration with the pipeline code itself, and that is it makes it more AI-interpretable. In my own environment at the airport, I’m looking for ways to reduce and even eliminate manual effort to document tables and processes. In our informal explorations, we’ve found that giving an LLM sample data and pipeline code is enough to populate almost all the critical metadata around table descriptions, column descriptions, and update frequency even for domain-specific processes. I’m hopeful that this will greatly cutback on the amount of manual documentation and metadata entry that no one wants to do anyway.</p>
+</section>
+<section id="conclusions" class="level2">
+<h2 class="anchored" data-anchor-id="conclusions">Conclusions</h2>
+<p>Here we saw how a single, cost-efficient maestro project can meet data orchestration needs for a moderate enterprise. Too often, I see people arguing on LinkedIn that if you’re a data engineer you need to use Airflow, or Spark, or [insert next trendy orchestration platform here]. The people who say this are usually trying to inflate their ego, sell you something, or they work for companies processing terabytes of data a minute and thus genuinely need a beastly platform. Most organizations don’t need that kind of power. In the end, it’s important to right-size the hardware and compute resources for the actual compute needs of your project. At the very least, if you’re an R user facing the conundrum of how to orchestrate your scripts, maestro is a great way to start familiar, start small, but with the potential to scale up to meet most of your needs.</p>
+<p>This post was created using R version 4.4.2 (2024-10-31) and maestro version 0.5.1.</p>
+</section>
+<section id="appendices" class="level2">
+<h2 class="anchored" data-anchor-id="appendices">Appendices</h2>
+<section id="chatgpt-conversation" class="level3">
+<h3 class="anchored" data-anchor-id="chatgpt-conversation">ChatGPT Conversation</h3>
+<p>The conversation below was with ChatGPT 4-o on February 26th 2025.</p>
+<p>Me: I want to do some cost estimates for cloud computing. I have three proposed tech stacks, all of which I could run on any cloud provider. I don’t want to compare cloud providers but instead compare the estimated cost of each architecture. In all cases, the project would involve taking 10 data flows that process around 500MB-2GB of data at varying time intervals with the most frequent being every hour and the least being every day. These data flows could be Python or R scripts or something else depending on the tech stack.</p>
+<p>Here are the three proposed tech stacks:</p>
+<ol type="1">
+<li>All 10 data flows run on a single instance and an orchestrator script runs every hour to determine which script to run. Importantly, all of this runs on a single serverless instance.</li>
+<li>Each 10 data flow has its own serverless instance and a scheduling service from the cloud provider is used to configure each script to run at its required time interval.</li>
+<li>An open-source Apache Airflow project is hosted on a compute instance.</li>
+<li>An orchestration platform provided by the cloud provider is used out of the box.</li>
+</ol>
+<p>For each scenario, provide some estimate as to the hardware requirements (e.g., instance size, compute nodes, etc.) and give a rough estimate of monthly cost in CAD.</p>
+<blockquote class="blockquote">
+<p>I’ll break down the estimated cloud costs for each of the four approaches based on typical cloud pricing. Since we’re not comparing cloud providers directly, I’ll use common pricing models across AWS, GCP, and Azure. Prices will be in <strong>CAD</strong>.</p>
+<hr>
+<h3 id="approach-1-single-serverless-instance-for-all-data-flows" class="anchored"><strong>Approach 1: Single Serverless Instance for All Data Flows</strong></h3>
+<ul>
+<li><p><strong>Hardware Requirements:</strong></p>
+<ul>
+<li><p>One serverless instance that scales based on workload.</p></li>
+<li><p>Needs at least <strong>2 vCPUs and 4GB RAM</strong>, but scales up if a heavy script runs.</p></li>
+<li><p>~2GB of storage for script dependencies.</p></li>
+<li><p>Assumes processing 500MB-2GB per run.</p></li>
+</ul></li>
+<li><p><strong>Cost Breakdown:</strong></p>
+<ul>
+<li><p><strong>Compute:</strong> <del>$0.000016 per second per vCPU (</del>$0.06 per vCPU-hour)</p></li>
+<li><p><strong>Memory:</strong> <del>$0.0000025 per second per GB (</del>$0.009 per GB-hour)</p></li>
+<li><p>Assuming each flow runs for an <strong>average of 5 minutes</strong> and scales up to <strong>4 vCPUs and 8GB RAM</strong> occasionally:</p>
+<ul>
+<li><p>10 flows × 24 runs/day × 30 days = <strong>7,200 runs/month</strong></p></li>
+<li><p>Avg runtime: 5 min per run = <strong>36,000 minutes per month</strong> = <strong>600 hours</strong></p></li>
+<li><p>At <strong>$0.06 per vCPU-hour</strong>, 2 vCPUs cost <strong>$72/month</strong>.</p></li>
+<li><p>At <strong>$0.009 per GB-hour</strong>, 4GB RAM costs <strong>$21.6/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Storage &amp; Data Transfer:</strong> Minimal, say <strong>$5/month</strong>.</p></li>
+</ul>
+<p><strong>Estimated Cost: $100–120 CAD/month</strong></p></li>
+</ul>
+<hr>
+<h3 id="approach-2-separate-serverless-instance-for-each-data-flow" class="anchored"><strong>Approach 2: Separate Serverless Instance for Each Data Flow</strong></h3>
+<ul>
+<li><p><strong>Hardware Requirements:</strong></p>
+<ul>
+<li><p>Each of the <strong>10 data flows</strong> has its own <strong>serverless function</strong>.</p></li>
+<li><p>Similar compute and memory needs as Approach 1 but scaled per function.</p></li>
+<li><p>A <strong>cloud scheduling service</strong> (e.g., AWS EventBridge, Azure Logic Apps, or GCP Cloud Scheduler) triggers them.</p></li>
+</ul></li>
+<li><p><strong>Cost Breakdown:</strong></p>
+<ul>
+<li><p>Compute per function: Assume <strong>same 5 minutes per run</strong>.</p></li>
+<li><p>10 functions × 24 runs/day × 30 days = <strong>7,200 total executions</strong>.</p></li>
+<li><p>If each function scales to <strong>2 vCPUs and 4GB RAM</strong> per run:</p>
+<ul>
+<li><p>At <strong>$0.06 per vCPU-hour</strong>, cost per function = <strong>$7.2/month</strong> × 10 = <strong>$72/month</strong>.</p></li>
+<li><p>At <strong>$0.009 per GB-hour</strong>, cost per function = <strong>$2.16/month</strong> × 10 = <strong>$21.6/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Scheduling service:</strong> ~$5/month.</p></li>
+<li><p><strong>Storage &amp; Data Transfer:</strong> ~$10/month.</p></li>
+</ul>
+<p><strong>Estimated Cost: $110–130 CAD/month</strong></p></li>
+</ul>
+<hr>
+<h3 id="approach-3-apache-airflow-on-a-compute-instance" class="anchored"><strong>Approach 3: Apache Airflow on a Compute Instance</strong></h3>
+<ul>
+<li><p><strong>Hardware Requirements:</strong></p>
+<ul>
+<li><p>1 compute instance for <strong>Airflow scheduler and web server</strong>: <strong>2 vCPUs, 4GB RAM</strong>.</p></li>
+<li><p>1 compute instance for <strong>Airflow worker</strong>: <strong>4 vCPUs, 8GB RAM</strong>.</p></li>
+<li><p>10 tasks run dynamically on the worker.</p></li>
+</ul></li>
+<li><p><strong>Cost Breakdown:</strong></p>
+<ul>
+<li><p><strong>Compute:</strong></p>
+<ul>
+<li><p>Scheduler instance: <strong>$50–60/month</strong>.</p></li>
+<li><p>Worker instance: <strong>$80–100/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Storage &amp; Networking:</strong> ~$10/month.</p></li>
+<li><p><strong>Managed Database (PostgreSQL for metadata):</strong> ~$30/month.</p></li>
+</ul>
+<p><strong>Estimated Cost: $170–200 CAD/month</strong></p></li>
+</ul>
+<hr>
+<h3 id="approach-4-cloud-providers-managed-orchestration-service" class="anchored"><strong>Approach 4: Cloud Provider’s Managed Orchestration Service</strong></h3>
+<ul>
+<li><p><strong>Hardware Requirements:</strong></p>
+<ul>
+<li><p>Fully managed service.</p></li>
+<li><p>Underlying compute managed by the provider (often charged per task execution).</p></li>
+<li><p>Assumes a <strong>pay-per-task execution model</strong>.</p></li>
+</ul></li>
+<li><p><strong>Cost Breakdown:</strong></p>
+<ul>
+<li><p><strong>Task Execution Pricing:</strong> ~<strong>$0.0025–$0.005 per task execution</strong>.</p></li>
+<li><p>7,200 runs × <strong>$0.003</strong> = <strong>$22/month</strong>.</p></li>
+<li><p><strong>Compute Costs:</strong> (~$50/month for light usage, scales if workflows are complex).</p></li>
+<li><p><strong>Storage &amp; API Calls:</strong> ~$5–10/month.</p></li>
+</ul>
+<p><strong>Estimated Cost: $80–100 CAD/month</strong></p></li>
+</ul>
+<hr>
+<h3 id="summary-of-estimated-monthly-costs-cad" class="anchored"><strong>Summary of Estimated Monthly Costs (CAD)</strong></h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Approach</th>
+<th>Estimated Monthly Cost (CAD)</th>
+<th>Key Considerations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1. Single Serverless Instance</strong></td>
+<td><strong>$100–120</strong></td>
+<td>Simple but limited scalability.</td>
+</tr>
+<tr class="even">
+<td><strong>2. Separate Serverless Instances</strong></td>
+<td><strong>$110–130</strong></td>
+<td>More parallelism but increased function calls.</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Apache Airflow on Compute</strong></td>
+<td><strong>$170–200</strong></td>
+<td>More control, but higher infra cost.</td>
+</tr>
+<tr class="even">
+<td><strong>4. Cloud Managed Orchestration</strong></td>
+<td><strong>$80–100</strong></td>
+<td>Scalable and cost-efficient.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="recommendation" class="anchored"><strong>Recommendation</strong></h3>
+<ul>
+<li><p><strong>If cost is the main factor</strong> → <strong>Approach 4</strong> (Managed Orchestration) is best.</p></li>
+<li><p><strong>If you prefer full control</strong> → <strong>Approach 3</strong> (Airflow).</p></li>
+<li><p><strong>If you need balance between control and scalability</strong> → <strong>Approach 2</strong> (Separate Serverless Instances).</p></li>
+</ul>
+</blockquote>
+<p>Me: In the first scenario are you properly accounting for the fact that the job would only run once every hour? Even if there are multiple processes being executed, it is still one job scheduled to run hourly.</p>
+<blockquote class="blockquote">
+<p>You’re absolutely right! In <strong>Scenario 1 (Single Serverless Instance Running an Orchestrator Script Hourly)</strong>, the <strong>orchestrator script only runs once per hour</strong>, making the cost lower than I initially estimated. Let’s correct that calculation.</p>
+<hr>
+<h3 id="scenario-1-revised-cost-calculation" class="anchored"><strong>Scenario 1: Revised Cost Calculation</strong></h3>
+<ul>
+<li><p><strong>Execution Frequency:</strong></p>
+<ul>
+<li><p>The orchestrator runs <strong>once every hour</strong> → <strong>24 runs per day</strong>.</p></li>
+<li><p>Each run executes <strong>one or more data flows sequentially</strong>.</p></li>
+<li><p>Assume an <strong>average runtime of 10 minutes per execution</strong> (to process multiple flows).</p></li>
+</ul></li>
+<li><p><strong>Compute Usage:</strong></p>
+<ul>
+<li><p>Suppose the instance scales between <strong>2–4 vCPUs and 4–8GB RAM</strong>, depending on the workload.</p></li>
+<li><p>At peak, assume <strong>2 vCPUs and 4GB RAM</strong> for the <strong>entire execution</strong>.</p></li>
+<li><p>Cost estimation:</p>
+<ul>
+<li><p><strong>24 runs/day × 30 days = 720 runs/month</strong>.</p></li>
+<li><p><strong>10 minutes per run</strong> = <strong>7,200 minutes per month</strong> = <strong>120 compute hours/month</strong>.</p></li>
+<li><p>Compute cost: <strong>$0.06 per vCPU-hour</strong> × <strong>2 vCPUs</strong> × <strong>120 hours</strong> = <strong>$14.40/month</strong>.</p></li>
+<li><p>Memory cost: <strong>$0.009 per GB-hour</strong> × <strong>4GB</strong> × <strong>120 hours</strong> = <strong>$4.32/month</strong>.</p></li>
+</ul></li>
+</ul></li>
+<li><p><strong>Storage &amp; Data Transfer:</strong></p>
+<ul>
+<li><p>Storage: <strong>~$5/month</strong>.</p></li>
+<li><p>Data transfer: <strong>~$5/month</strong>.</p></li>
+</ul></li>
+</ul>
+<p><strong>Total Estimated Cost: $25–35 CAD/month</strong></p>
+<hr>
+<h3 id="updated-cost-comparison-cad" class="anchored"><strong>Updated Cost Comparison (CAD)</strong></h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Approach</th>
+<th>Updated Monthly Cost (CAD)</th>
+<th>Key Considerations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1. Single Serverless Instance</strong></td>
+<td><strong>$25–35</strong> ✅</td>
+<td>Most cost-effective but limited parallelism.</td>
+</tr>
+<tr class="even">
+<td><strong>2. Separate Serverless Instances</strong></td>
+<td><strong>$110–130</strong></td>
+<td>More parallelism but higher function call costs.</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Apache Airflow on Compute</strong></td>
+<td><strong>$170–200</strong></td>
+<td>Full control but highest infra cost.</td>
+</tr>
+<tr class="even">
+<td><strong>4. Cloud Managed Orchestration</strong></td>
+<td><strong>$80–100</strong></td>
+<td>Scalable and cost-efficient.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="final-thoughts" class="anchored"><strong>Final Thoughts</strong></h3>
+<ul>
+<li><p><strong>Scenario 1 is now clearly the cheapest option (~$25–35 CAD/month).</strong></p></li>
+<li><p>However, it <strong>lacks parallelism</strong>—if multiple heavy processes need to run, the single instance might <strong>take longer to complete</strong>.</p></li>
+<li><p>If <strong>cost is the priority</strong>, Scenario 1 is the best choice.</p></li>
+<li><p>If <strong>scalability and efficiency</strong> matter, Scenario 4 (Managed Orchestration) is a good balance.</p></li>
+</ul>
+<p>Would you like a <strong>cost efficiency vs.&nbsp;performance trade-off chart</strong> to visualize these differences? 🚀</p>
+</blockquote>
+<p>Me: Finally, let’s say for Scenario 1 that we enable parallel processing if needed. For example, if 4 processes need to run simultaneously it can scale up to 4 cores.</p>
+<blockquote class="blockquote">
+<p>Great! If we allow <strong>Scenario 1</strong> to <strong>scale dynamically to support parallel processing</strong>, we need to adjust the compute cost based on variable CPU utilization. Here’s how that impacts the estimation.</p>
+<hr>
+<h3 id="scenario-1-revised-cost-with-parallel-processing" class="anchored"><strong>Scenario 1: Revised Cost with Parallel Processing</strong></h3>
+<h4 id="assumptions" class="anchored"><strong>Assumptions:</strong></h4>
+<ul>
+<li><p><strong>Orchestrator runs every hour</strong> (<strong>24 times per day</strong>).</p></li>
+<li><p>Each execution lasts <strong>10 minutes</strong> but now <strong>can use up to 4 vCPUs when needed</strong>.</p></li>
+<li><p><strong>Average vCPU usage per run</strong>:</p>
+<ul>
+<li><p>Some runs may use <strong>1–2 vCPUs</strong> (light workloads).</p></li>
+<li><p>Others may spike to <strong>4 vCPUs</strong> (heavy parallel processing).</p></li>
+<li><p>Assume an <strong>average usage of 3 vCPUs per execution</strong>.</p></li>
+</ul></li>
+<li><p><strong>Memory scales accordingly</strong>: Assume <strong>6GB RAM on average</strong>.</p></li>
+</ul>
+<h4 id="compute-cost-calculation" class="anchored"><strong>Compute Cost Calculation:</strong></h4>
+<ul>
+<li><p><strong>Total monthly runtime</strong>:</p>
+<ul>
+<li><strong>10 min per execution × 24 runs/day × 30 days = 7,200 minutes (~120 hours/month).</strong></li>
+</ul></li>
+<li><p><strong>CPU Cost:</strong></p>
+<ul>
+<li><p>Avg <strong>3 vCPUs per run</strong>.</p></li>
+<li><p><strong>$0.06 per vCPU-hour</strong> × <strong>3 vCPUs</strong> × <strong>120 hours</strong> = <strong>$21.60/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Memory Cost:</strong></p>
+<ul>
+<li><p>Avg <strong>6GB RAM per run</strong>.</p></li>
+<li><p><strong>$0.009 per GB-hour</strong> × <strong>6GB</strong> × <strong>120 hours</strong> = <strong>$6.48/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Storage &amp; Data Transfer:</strong></p>
+<ul>
+<li><strong>$5–10/month</strong> (no significant change).</li>
+</ul></li>
+</ul>
+<p><strong>Final Total Cost: ~$35–45 CAD/month</strong></p>
+<hr>
+<h3 id="final-cost-comparison-cad" class="anchored"><strong>Final Cost Comparison (CAD)</strong></h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Approach</th>
+<th>Monthly Cost (CAD)</th>
+<th>Key Considerations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1. Single Serverless Instance (Parallel Processing)</strong></td>
+<td><strong>$35–45</strong> ✅</td>
+<td>Cheapest, allows parallelism but limited by single-instance performance.</td>
+</tr>
+<tr class="even">
+<td><strong>2. Separate Serverless Instances</strong></td>
+<td><strong>$110–130</strong></td>
+<td>Fully scalable, better for frequent workloads.</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Apache Airflow on Compute</strong></td>
+<td><strong>$170–200</strong></td>
+<td>Self-managed, full control, higher maintenance.</td>
+</tr>
+<tr class="even">
+<td><strong>4. Cloud Managed Orchestration</strong></td>
+<td><strong>$80–100</strong></td>
+<td>Best for scalability without management overhead.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="conclusion" class="anchored"><strong>Conclusion</strong></h3>
+<ul>
+<li><p><strong>Scenario 1 with parallelism remains the cheapest (~$35–45 CAD/month).</strong></p></li>
+<li><p><strong>It allows parallel execution when needed</strong>, reducing the risk of long-running sequential jobs.</p></li>
+<li><p><strong>It’s best if workload concurrency is manageable</strong> (e.g., not exceeding 4 vCPUs often).</p></li>
+<li><p>If <strong>greater scalability is required</strong>, <strong>Scenario 4 (Managed Orchestration) would be the next best option</strong>.</p></li>
+</ul>
+<p>Would you like a cost vs.&nbsp;scalability chart to visualize these trade-offs? 🚀</p>
+</blockquote>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Data <em>flows</em> through a pipeline. I’ll use the terms data flow and pipeline interchangeably.↩︎</p></li>
+<li id="fn2"><p>By cost I’m mostly referring to cloud computing costs, although in theory it could reduce the cost of on-premise servers if it means purchasing fewer and less expensive servers.↩︎</p></li>
+<li id="fn3"><p>I’m using the term <em>moderate enterprise</em> loosely to mean any organization that has around 10-50 data flows that process gigabytes of data for ETL, machine learning, etc. in batch jobs occurring at hourly or daily frequencies. This is what we have at the airport and it works perfectly fine with room to grow. As jobs become heavier and/or more frequent, you may need to be run maestro multicore or break up the project into multiple maestro projects.↩︎</p></li>
+<li id="fn4"><p>At the airport we use Apache Nifi for legacy reasons and for the occasional time that streaming is needed. Managing the scheduling of each flow is inexplicably convoluted.↩︎</p></li>
+</ol>
+</section></div> ]]></description>
+  <category>R</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>packages</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/you-dont-need-airflow/main.html</guid>
+  <pubDate>Wed, 26 Feb 2025 04:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Chain your maestro pipelines DAG style</title>
   <dc:creator>Will Hipson</dc:creator>

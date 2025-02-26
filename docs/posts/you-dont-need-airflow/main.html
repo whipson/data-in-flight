@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.13">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Will Hipson">
+<meta name="dcterms.date" content="2025-02-26">
+
+<title>You Don’t Need Airflow: Orchestrate Many Data Flows in R with Maestro – data-in-flight</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-66ab7fd5e73b7f0a764e0d49b3e29ab1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-d045e70ebd9269c25e164ecdb4898f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">data-in-flight</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.linkedin.com/in/will-hipson/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text">LinkedIn</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://github.com/whipson"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text">Github</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text">RSS</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.r-bloggers.com/"> <i class="bi bi-share" role="img">
+</i> 
+<span class="menu-text">R-bloggers</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">You Don’t Need Airflow: Orchestrate Many Data Flows in R with Maestro</h1>
+            <p class="subtitle lead">(At a fraction of the time and cost)</p>
+                                <div class="quarto-categories">
+                <div class="quarto-category">R</div>
+                <div class="quarto-category">data pipelines</div>
+                <div class="quarto-category">orchestration</div>
+                <div class="quarto-category">maestro</div>
+                <div class="quarto-category">packages</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Will Hipson </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">February 26, 2025</p>
+      </div>
+    </div>
+    
+      <div>
+      <div class="quarto-title-meta-heading">Modified</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date-modified">February 26, 2025</p>
+      </div>
+    </div>
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>Data never stays in one place for long. Any business or team that works with data needs to be thinking about how data moves from one place to the next. This often happens multiple times, continuously, and in multiple different streams. The concept of moving data is data flow<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. When you have many data flows that need to be managed it’s called data orchestration. More specifically, data orchestration is the process of automating the ingestion, transformation, and analysis of data from multiple different locations and then making it widely accessible to users.</p>
+<p>If you look at data orchestration tools today you are bombarded with a dizzying array of software platforms that claim unsurpassed processing capability, AI-readiness, elegant UIs, etc. Apache Airflow is just one example of a popular orchestration platform that scales to meet virtually any orchestration need. And while these claims may be true, I argue it is rarely the case that these gargantuan platforms are needed in the first place. For most data engineers, you probably only need to process a moderate amount of data at a moderate time scale. Moreover, if you’re an R user, you don’t want to have to define your data pipelines using drag-and-drop tools or learn another programming language. Not only will this reduce cloud costs but also development time costs.</p>
+<p>This was the inspiration for <a href="https://whipson.github.io/maestro/">maestro</a> - an R package for orchestrating data jobs within a single project. Here I’ll demonstrate a maestro project and how the cost of deploying it likely compares to other data orchestration platforms currently available.</p>
+<p>In this example, I’ll use open data from Cornell Lab’s <a href="https://documenter.getpostman.com/view/664302/S1ENwy59">eBird API</a> providing free access to global bird observations and statistics. Note that a user account and API key are required to access the API.</p>
+<section id="maestro" class="level2">
+<h2 class="anchored" data-anchor-id="maestro">Maestro</h2>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Check out the <a href="https://whipson.github.io/maestro/index.html">maestro docs</a> for a more detailed introduction to maestro.</p>
+</div>
+</div>
+<p>A maestro project consists of one or more pipelines (i.e., R functions with roxygen tags) and a single orchestrator script responsible for invoking the pipelines according to a schedule.</p>
+<p>The project structure will look something like this:</p>
+<pre><code>sample_project
+├── orchestrator.R
+└── pipelines
+    ├── get_nearby_notable_obs.R
+    ├── get_region_stats.R
+    └── get_species_list.R</code></pre>
+<section id="pipelines" class="level3">
+<h3 class="anchored" data-anchor-id="pipelines">Pipelines</h3>
+<p>I’ve created three pipelines that each retrieve data from one of the eBird endpoints and stores it in a <a href="https://motherduck.com/duckdb-book-brief/?utm_campaign=manning4&amp;utm_medium=paid&amp;utm_source=google&amp;utm_content=sponsored_ad&amp;utm_term=duckdb&amp;utm_campaign=DuckDB+In+Action+%7C+Landing+Page+Test+%7C+US+%26+Canada&amp;utm_source=adwords&amp;utm_medium=ppc&amp;hsa_acc=6957541599&amp;hsa_cam=21716136677&amp;hsa_grp=169023858473&amp;hsa_ad=713954371320&amp;hsa_src=g&amp;hsa_tgt=kwd-1637281685009&amp;hsa_kw=duckdb&amp;hsa_mt=b&amp;hsa_net=adwords&amp;hsa_ver=3&amp;gad_source=1&amp;gclid=CjwKCAiA5eC9BhAuEiwA3CKwQtsR_YIV8w9EBIUbZZ_djYTL8VL-IBkFtuXNYHIaidYECqq_EbI7HRoCprMQAvD_BwE">duckdb</a> table. Each pipeline is scheduled to run at a particular time interval so that new data is regularly inserted into the table.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The <code>#' @maestroFrequency</code> is one of several tags that can be used to configure the scheduling of the pipeline. See <a href="https://whipson.github.io/maestro/articles/maestro-1-quick-start.html#anatomy-of-a-pipeline">here</a> for more details.</p>
+</div>
+</div>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true">get_nearby_notable_obs.R</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false">get_region_stats.R</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" role="tab" aria-controls="tabset-1-3" aria-selected="false">get_species_list.R</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 3 hours</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2025-02-20 12:00:00</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroTz America/Halifax</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>get_nearby_notable_obs <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  req <span class="ot">&lt;-</span> httr2<span class="sc">::</span><span class="fu">request</span>(<span class="st">"https://api.ebird.org/v2"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_url_path_append</span>(<span class="st">"data/obs/geo/recent/notable"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_url_query</span>(</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">lat =</span> <span class="fl">44.88</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">lng =</span> <span class="sc">-</span><span class="fl">63.52</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_headers</span>(</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">X-eBirdApiToken</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">Sys.getenv</span>(<span class="st">"EBIRD_API_KEY"</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  resp <span class="ot">&lt;-</span> req <span class="sc">|&gt;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_perform</span>()</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  obs <span class="ot">&lt;-</span> resp <span class="sc">|&gt;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(<span class="at">simplifyVector =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">insert_time =</span> <span class="fu">Sys.time</span>()</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Connect to a local in-memory duckdb</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>  conn <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(duckdb<span class="sc">::</span><span class="fu">duckdb</span>())</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">on.exit</span>(DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(conn))</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create and write to a table</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>  DBI<span class="sc">::</span><span class="fu">dbWriteTable</span>(</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    conn,</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"recent_notable_observations"</span>,</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">value =</span> obs,</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">append =</span> <span class="cn">TRUE</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+<div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 1 day</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2025-02-20 18:00:00</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroTz America/Halifax</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>get_region_stats <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  now <span class="ot">&lt;-</span> <span class="fu">Sys.time</span>()</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  cur_year <span class="ot">&lt;-</span> lubridate<span class="sc">::</span><span class="fu">year</span>(now)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  cur_month <span class="ot">&lt;-</span> lubridate<span class="sc">::</span><span class="fu">month</span>(now)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  cur_day <span class="ot">&lt;-</span> lubridate<span class="sc">::</span><span class="fu">day</span>(now)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  req <span class="ot">&lt;-</span> httr2<span class="sc">::</span><span class="fu">request</span>(<span class="st">"https://api.ebird.org/v2"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_url_path_append</span>(<span class="st">"product/stats"</span>, <span class="st">"CA-NS"</span>, cur_year, cur_month, cur_day) <span class="sc">|&gt;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_headers</span>(</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">X-eBirdApiToken</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">Sys.getenv</span>(<span class="st">"EBIRD_API_KEY"</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  resp <span class="ot">&lt;-</span> req <span class="sc">|&gt;</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_perform</span>()</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  stats <span class="ot">&lt;-</span> resp <span class="sc">|&gt;</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(<span class="at">simplifyVector =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">as_tibble</span>()</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Connect to a local in-memory duckdb</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>  conn <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(duckdb<span class="sc">::</span><span class="fu">duckdb</span>())</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">on.exit</span>(DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(conn))</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create and write to a table</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>  DBI<span class="sc">::</span><span class="fu">dbWriteTable</span>(</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    conn,</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"region_stats"</span>,</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">value =</span> stats,</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">append =</span> <span class="cn">TRUE</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+<div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 1 day</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2025-02-20 15:00:00</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroTz America/Halifax</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>get_species_list <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  req <span class="ot">&lt;-</span> httr2<span class="sc">::</span><span class="fu">request</span>(<span class="st">"https://api.ebird.org/v2"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_url_path_append</span>(<span class="st">"product/spplist"</span>, <span class="st">"CA-NS"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_headers</span>(</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">X-eBirdApiToken</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">Sys.getenv</span>(<span class="st">"EBIRD_API_KEY"</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  resp <span class="ot">&lt;-</span> req <span class="sc">|&gt;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">req_perform</span>()</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  spec_list <span class="ot">&lt;-</span> resp <span class="sc">|&gt;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    httr2<span class="sc">::</span><span class="fu">resp_body_json</span>(<span class="at">simplifyVector =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  spec_df <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">speciesCode =</span> spec_list</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">insert_time =</span> <span class="fu">Sys.time</span>()</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Connect to a local in-memory duckdb</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  conn <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(duckdb<span class="sc">::</span><span class="fu">duckdb</span>())</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">on.exit</span>(DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(conn))</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create and write to a table</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  DBI<span class="sc">::</span><span class="fu">dbWriteTable</span>(</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    conn,</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"species_list"</span>,</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">value =</span> spec_df,</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">append =</span> <span class="cn">TRUE</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="orchestrator" class="level3">
+<h3 class="anchored" data-anchor-id="orchestrator">Orchestrator</h3>
+<p>With the pipelines created we move to the orchestrator script. This is an R script or Quarto document that runs maestro functions to create the schedule from the tags and the run the schedule according to some frequency - a frequency that should always be at least as frequent as your most frequent pipeline.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(maestro)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>schedule <span class="ot">&lt;-</span> <span class="fu">build_schedule</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ 3 scripts successfully parsed</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">run_schedule</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  schedule, </span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">orch_frequency =</span> <span class="st">"1 hour"</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">check_datetime =</span> <span class="fu">as.POSIXct</span>(<span class="st">"2025-02-26 15:00:00"</span>, <span class="at">tz =</span> <span class="st">"America/Halifax"</span>) <span class="co"># for reproducibility - in practice use Sys.time()</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+── [2025-02-26 15:14:23]
+Running pipelines ▶ 
+ℹ get_nearby_notable_obs
+✔ get_nearby_notable_obs [758ms]
+
+ℹ get_species_list
+✔ get_species_list [108ms]
+
+
+── [2025-02-26 15:14:24]
+Pipeline execution completed ■ | 0.885 sec elapsed 
+✔ 2 successes | → 1 skipped | ! 0 warnings | ✖ 0 errors | ◼ 3 total
+────────────────────────────────────────────────────────────────────────────────
+
+── Next scheduled pipelines ❯ 
+Pipe name | Next scheduled run
+• get_nearby_notable_obs | 2025-02-26 22:00:00
+• get_region_stats | 2025-02-26 22:00:00
+• get_species_list | 2025-02-27 19:00:00
+
+── Maestro Schedule with 3 pipelines:  
+• Success</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>status <span class="ot">&lt;-</span> <span class="fu">get_status</span>(schedule)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>status</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 10
+  pipe_name  script_path invoked success pipeline_started    pipeline_ended     
+  &lt;chr&gt;      &lt;chr&gt;       &lt;lgl&gt;   &lt;lgl&gt;   &lt;dttm&gt;              &lt;dttm&gt;             
+1 get_nearb… ./pipeline… TRUE    TRUE    2025-02-26 19:14:23 2025-02-26 19:14:24
+2 get_regio… ./pipeline… FALSE   FALSE   NA                  NA                 
+3 get_speci… ./pipeline… TRUE    TRUE    2025-02-26 19:14:24 2025-02-26 19:14:24
+# ℹ 4 more variables: errors &lt;int&gt;, warnings &lt;int&gt;, messages &lt;int&gt;,
+#   next_run &lt;dttm&gt;</code></pre>
+</div>
+</div>
+<p>We can run all this interactively, but the power of maestro is in running it scheduled in production. This way, the data will grow and update regularly. Deployment is not special in the case of maestro - you just need to be sure that the orchestrator is scheduled to run at the same frequency as specified in <code>orch_frequency</code>. Check out my <a href="../../posts/maestro-gcp-deployment/maestro-gcp-deployment.html">previous post</a> for a walk through of deployment on Google Cloud.</p>
+</section>
+</section>
+<section id="monitoring" class="level2">
+<h2 class="anchored" data-anchor-id="monitoring">Monitoring</h2>
+<p>In production it is essential to monitor the status of data flows so that issues can be identified and resolved. There are a few extra steps to set this up for maestro:</p>
+<ol type="1">
+<li>Store results of <code>get_status()</code> in a separate table.</li>
+<li>Create and host a visualization/dashboard with the pipeline statuses.</li>
+</ol>
+<p>Step 1 will involve adding a few lines of code in the orchestrator script. In our example using duckdb, it looks like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>status <span class="ot">&lt;-</span> <span class="fu">get_status</span>(schedule)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>conn <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(duckdb<span class="sc">::</span><span class="fu">duckdb</span>())</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>DBI<span class="sc">::</span><span class="fu">dbWriteTable</span>(</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  conn,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">name =</span> <span class="st">"maestro_status"</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> status,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">append =</span> <span class="cn">TRUE</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(conn)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here, I’ll simulate multiple runs of the orchestrator to make it seem like it had been running for a few days. In practice, you would just read the table containing the pipeline statuses.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">233</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>n_runs <span class="ot">&lt;-</span> <span class="dv">3</span> <span class="sc">*</span> <span class="dv">24</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>last_run <span class="ot">&lt;-</span> <span class="fu">as.POSIXct</span>(<span class="st">"2025-02-26 15:00:00"</span>, <span class="at">tz =</span> <span class="st">"America/Halifax"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>run_seq <span class="ot">&lt;-</span> last_run <span class="sc">-</span> lubridate<span class="sc">::</span><span class="fu">hours</span>(<span class="dv">0</span><span class="sc">:</span>n_runs)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co"># This leverages the lower-level MaestroPipeline class. This is almost never needed in practice</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>status_extended_ls <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map</span>(schedule<span class="sc">$</span>PipelineList<span class="sc">$</span>MaestroPipelines, \(x) {</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  purrr<span class="sc">::</span><span class="fu">map</span>(run_seq, \(y) {</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    pipe_name <span class="ot">&lt;-</span> x<span class="sc">$</span><span class="fu">get_pipe_name</span>()</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    run_pipe <span class="ot">&lt;-</span> x<span class="sc">$</span><span class="fu">check_timeliness</span>(<span class="at">orch_n =</span> <span class="dv">1</span>, <span class="at">orch_unit =</span> <span class="st">"hour"</span>, <span class="at">check_datetime =</span> y)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (run_pipe) {</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">pipe_name =</span> pipe_name,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">invoked =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">success =</span> <span class="fu">sample</span>(<span class="fu">c</span>(<span class="cn">TRUE</span>, <span class="cn">FALSE</span>), <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">c</span>(<span class="fl">0.8</span>, <span class="fl">0.2</span>)),</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">pipeline_started =</span> y,</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">pipeline_ended =</span> pipeline_started <span class="sc">+</span> lubridate<span class="sc">::</span><span class="fu">seconds</span>(<span class="fu">sample</span>(<span class="fu">seq</span>(<span class="fl">0.4</span>, <span class="dv">5</span>, <span class="at">by =</span> <span class="fl">0.05</span>), <span class="dv">1</span>)),</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">pipe_name =</span> pipe_name,</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        <span class="at">invoked =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">success =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">pipeline_started =</span> <span class="cn">NA</span>,</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">pipeline_ended =</span> <span class="cn">NA</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    purrr<span class="sc">::</span><span class="fu">list_rbind</span>()</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>status_extended_df <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">list_rbind</span>(status_extended_ls)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>There are many ways to visualize the status of pipelines. If the number of pipelines is small and your time window is similarly small you can get away with a static <em>ggplot.</em> The code below uses the simulated status data.frame to generate a simple Gantt chart where green indicates success and red failure.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>status_extended_df <span class="sc">|&gt;</span> </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> pipeline_started, <span class="at">y =</span> <span class="dv">0</span>)) <span class="sc">+</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">xend =</span> pipeline_ended, <span class="at">yend =</span> <span class="dv">1</span>, <span class="at">color =</span> success)) <span class="sc">+</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"firebrick2"</span>, <span class="st">"seagreen3"</span>)) <span class="sc">+</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>pipe_name, <span class="at">ncol =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="cn">NULL</span>,</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="cn">NULL</span>,</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Pipeline Status"</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">color =</span> <span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_blank</span>()</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="main_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As the number of pipelines grows and/or you want more flexibility around time frame, you may want to build a dashboard with interactive figures. The below image is a screenshot of the dashboard I built using shiny at Halifax Stanfield International Airport that monitors the ~20 production pipelines in our environment.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/maestro-pipeline-monitor.png" class="img-fluid figure-img"></p>
+<figcaption>Pipeline monitoring dashboard used in production at Halifax Stanfield International Airport</figcaption>
+</figure>
+</div>
+<p>It’s not hard to imagine a future extension package that creates these sorts of monitoring dashboards automatically.</p>
+<p>Now that we’ve seen how maestro works, let’s look at why we might want to use maestro over something like Airflow.</p>
+</section>
+<section id="maestro-reduces-cost" class="level2">
+<h2 class="anchored" data-anchor-id="maestro-reduces-cost">Maestro Reduces Cost</h2>
+<p>If you’re an R developer, the answer to the question <em>Why use Maestro</em> is obvious: <em>because I don’t need to use another language</em>. However, there are other reasons for preferring maestro over enterprise orchestration software like Airflow or Mage, chief among these being cost.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<p>There are two primary reasons why maestro saves on cloud bills:</p>
+<ol type="1">
+<li><strong>Maestro is serverless</strong> - it can scale down to zero when the orchestrator is not running. In other words, if the orchestrator frequency isn’t too high (~15 minutes or more) you don’t need to run it on a continuously available server. Something like AWS Lambda, Google Cloud Run, or Azure Functions would work just fine.</li>
+<li><strong>Maestro bundles multiple flows into a single instance</strong>. Assuming the number of flows and their frequencies doesn’t exceed limits you can run a moderate enterprise entirely within a single instance. No need to spin up and schedule separate instances for each data flow.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></li>
+</ol>
+<p>Let’s compare a few scenarios for cost estimates. In all cases, we’ll imagine we have 10 production data flows that run at various intervals ranging from every hour to every day. The scenarios are:</p>
+<ol type="1">
+<li>Maestro running serverless every 1 hour</li>
+<li>Separate scripts running serverless on separate instances</li>
+<li>Running an Airflow project open-source in the cloud</li>
+<li>Orchestration platform provided by the cloud provider</li>
+</ol>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>These are back-of-the-napkin estimates based on conversations with ChatGPT and cloud computing documentation. Do not use these estimates as the sole basis for determining which tech stack will be more affordable. If I have made egregious errors in my estimates, please reach out to me via LinkedIn.</p>
+</div>
+</div>
+<p>I asked ChatGPT to provide estimates not specific to any one cloud provider (see appendix <a href="#chatgpt-conversation">ChatGPT Conversation</a> for conversation). The monthly costs in CAD are listed below:</p>
+<ol type="1">
+<li>Maestro-style serverless: <strong>$25-35</strong> ($35-45 if using multi-core)</li>
+<li>Separate scheduled serverless scripts: <strong>$110-130</strong></li>
+<li>Airflow: <strong>$170–200</strong></li>
+<li>Cloud managed: <strong>$80–100</strong></li>
+</ol>
+<p>This suggests a substantial cost savings for using a maestro-style architecture. Please note that these are estimates and are not substantiated by any experimentation. It’s worth considering that the costs appear to take into account storage but probably don’t account for image hosting, CI/CD, out-of-the-box monitoring, etc. that would likely come with fully featured orchestration platforms.</p>
+</section>
+<section id="maestro-eases-configuration-and-bolsters-metadata" class="level2">
+<h2 class="anchored" data-anchor-id="maestro-eases-configuration-and-bolsters-metadata">Maestro Eases Configuration and Bolsters Metadata</h2>
+<p>One of the challenges of orchestrating multiple data flows is keeping track of scheduling. Maestro eases this burden by requiring the scheduling configuration to be exactly where the pipeline is. This is not a new concept (Dagster uses decorators for scheduling) but it is rare to find in other platforms.<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> This also follows the practice of infrastructure-as-code which makes projects more portable and reproducible.</p>
+<p>I’m also discovering a new advantage to declaring pipeline configuration with the pipeline code itself, and that is it makes it more AI-interpretable. In my own environment at the airport, I’m looking for ways to reduce and even eliminate manual effort to document tables and processes. In our informal explorations, we’ve found that giving an LLM sample data and pipeline code is enough to populate almost all the critical metadata around table descriptions, column descriptions, and update frequency even for domain-specific processes. I’m hopeful that this will greatly cutback on the amount of manual documentation and metadata entry that no one wants to do anyway.</p>
+</section>
+<section id="conclusions" class="level2">
+<h2 class="anchored" data-anchor-id="conclusions">Conclusions</h2>
+<p>Here we saw how a single, cost-efficient maestro project can meet data orchestration needs for a moderate enterprise. Too often, I see people arguing on LinkedIn that if you’re a data engineer you need to use Airflow, or Spark, or [insert next trendy orchestration platform here]. The people who say this are usually trying to inflate their ego, sell you something, or they work for companies processing terabytes of data a minute and thus genuinely need a beastly platform. Most organizations don’t need that kind of power. In the end, it’s important to right-size the hardware and compute resources for the actual compute needs of your project. At the very least, if you’re an R user facing the conundrum of how to orchestrate your scripts, maestro is a great way to start familiar, start small, but with the potential to scale up to meet most of your needs.</p>
+<p>This post was created using R version 4.4.2 (2024-10-31) and maestro version 0.5.1.</p>
+</section>
+<section id="appendices" class="level2">
+<h2 class="anchored" data-anchor-id="appendices">Appendices</h2>
+<section id="chatgpt-conversation" class="level3">
+<h3 class="anchored" data-anchor-id="chatgpt-conversation">ChatGPT Conversation</h3>
+<p>The conversation below was with ChatGPT 4-o on February 26th 2025.</p>
+<p>Me: I want to do some cost estimates for cloud computing. I have three proposed tech stacks, all of which I could run on any cloud provider. I don’t want to compare cloud providers but instead compare the estimated cost of each architecture. In all cases, the project would involve taking 10 data flows that process around 500MB-2GB of data at varying time intervals with the most frequent being every hour and the least being every day. These data flows could be Python or R scripts or something else depending on the tech stack.</p>
+<p>Here are the three proposed tech stacks:</p>
+<ol type="1">
+<li>All 10 data flows run on a single instance and an orchestrator script runs every hour to determine which script to run. Importantly, all of this runs on a single serverless instance.</li>
+<li>Each 10 data flow has its own serverless instance and a scheduling service from the cloud provider is used to configure each script to run at its required time interval.</li>
+<li>An open-source Apache Airflow project is hosted on a compute instance.</li>
+<li>An orchestration platform provided by the cloud provider is used out of the box.</li>
+</ol>
+<p>For each scenario, provide some estimate as to the hardware requirements (e.g., instance size, compute nodes, etc.) and give a rough estimate of monthly cost in CAD.</p>
+<blockquote class="blockquote">
+<p>I’ll break down the estimated cloud costs for each of the four approaches based on typical cloud pricing. Since we’re not comparing cloud providers directly, I’ll use common pricing models across AWS, GCP, and Azure. Prices will be in <strong>CAD</strong>.</p>
+<hr>
+<h3 id="approach-1-single-serverless-instance-for-all-data-flows" class="anchored"><strong>Approach 1: Single Serverless Instance for All Data Flows</strong></h3>
+<ul>
+<li><p><strong>Hardware Requirements:</strong></p>
+<ul>
+<li><p>One serverless instance that scales based on workload.</p></li>
+<li><p>Needs at least <strong>2 vCPUs and 4GB RAM</strong>, but scales up if a heavy script runs.</p></li>
+<li><p>~2GB of storage for script dependencies.</p></li>
+<li><p>Assumes processing 500MB-2GB per run.</p></li>
+</ul></li>
+<li><p><strong>Cost Breakdown:</strong></p>
+<ul>
+<li><p><strong>Compute:</strong> <del>$0.000016 per second per vCPU (</del>$0.06 per vCPU-hour)</p></li>
+<li><p><strong>Memory:</strong> <del>$0.0000025 per second per GB (</del>$0.009 per GB-hour)</p></li>
+<li><p>Assuming each flow runs for an <strong>average of 5 minutes</strong> and scales up to <strong>4 vCPUs and 8GB RAM</strong> occasionally:</p>
+<ul>
+<li><p>10 flows × 24 runs/day × 30 days = <strong>7,200 runs/month</strong></p></li>
+<li><p>Avg runtime: 5 min per run = <strong>36,000 minutes per month</strong> = <strong>600 hours</strong></p></li>
+<li><p>At <strong>$0.06 per vCPU-hour</strong>, 2 vCPUs cost <strong>$72/month</strong>.</p></li>
+<li><p>At <strong>$0.009 per GB-hour</strong>, 4GB RAM costs <strong>$21.6/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Storage &amp; Data Transfer:</strong> Minimal, say <strong>$5/month</strong>.</p></li>
+</ul>
+<p><strong>Estimated Cost: $100–120 CAD/month</strong></p></li>
+</ul>
+<hr>
+<h3 id="approach-2-separate-serverless-instance-for-each-data-flow" class="anchored"><strong>Approach 2: Separate Serverless Instance for Each Data Flow</strong></h3>
+<ul>
+<li><p><strong>Hardware Requirements:</strong></p>
+<ul>
+<li><p>Each of the <strong>10 data flows</strong> has its own <strong>serverless function</strong>.</p></li>
+<li><p>Similar compute and memory needs as Approach 1 but scaled per function.</p></li>
+<li><p>A <strong>cloud scheduling service</strong> (e.g., AWS EventBridge, Azure Logic Apps, or GCP Cloud Scheduler) triggers them.</p></li>
+</ul></li>
+<li><p><strong>Cost Breakdown:</strong></p>
+<ul>
+<li><p>Compute per function: Assume <strong>same 5 minutes per run</strong>.</p></li>
+<li><p>10 functions × 24 runs/day × 30 days = <strong>7,200 total executions</strong>.</p></li>
+<li><p>If each function scales to <strong>2 vCPUs and 4GB RAM</strong> per run:</p>
+<ul>
+<li><p>At <strong>$0.06 per vCPU-hour</strong>, cost per function = <strong>$7.2/month</strong> × 10 = <strong>$72/month</strong>.</p></li>
+<li><p>At <strong>$0.009 per GB-hour</strong>, cost per function = <strong>$2.16/month</strong> × 10 = <strong>$21.6/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Scheduling service:</strong> ~$5/month.</p></li>
+<li><p><strong>Storage &amp; Data Transfer:</strong> ~$10/month.</p></li>
+</ul>
+<p><strong>Estimated Cost: $110–130 CAD/month</strong></p></li>
+</ul>
+<hr>
+<h3 id="approach-3-apache-airflow-on-a-compute-instance" class="anchored"><strong>Approach 3: Apache Airflow on a Compute Instance</strong></h3>
+<ul>
+<li><p><strong>Hardware Requirements:</strong></p>
+<ul>
+<li><p>1 compute instance for <strong>Airflow scheduler and web server</strong>: <strong>2 vCPUs, 4GB RAM</strong>.</p></li>
+<li><p>1 compute instance for <strong>Airflow worker</strong>: <strong>4 vCPUs, 8GB RAM</strong>.</p></li>
+<li><p>10 tasks run dynamically on the worker.</p></li>
+</ul></li>
+<li><p><strong>Cost Breakdown:</strong></p>
+<ul>
+<li><p><strong>Compute:</strong></p>
+<ul>
+<li><p>Scheduler instance: <strong>$50–60/month</strong>.</p></li>
+<li><p>Worker instance: <strong>$80–100/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Storage &amp; Networking:</strong> ~$10/month.</p></li>
+<li><p><strong>Managed Database (PostgreSQL for metadata):</strong> ~$30/month.</p></li>
+</ul>
+<p><strong>Estimated Cost: $170–200 CAD/month</strong></p></li>
+</ul>
+<hr>
+<h3 id="approach-4-cloud-providers-managed-orchestration-service" class="anchored"><strong>Approach 4: Cloud Provider’s Managed Orchestration Service</strong></h3>
+<ul>
+<li><p><strong>Hardware Requirements:</strong></p>
+<ul>
+<li><p>Fully managed service.</p></li>
+<li><p>Underlying compute managed by the provider (often charged per task execution).</p></li>
+<li><p>Assumes a <strong>pay-per-task execution model</strong>.</p></li>
+</ul></li>
+<li><p><strong>Cost Breakdown:</strong></p>
+<ul>
+<li><p><strong>Task Execution Pricing:</strong> ~<strong>$0.0025–$0.005 per task execution</strong>.</p></li>
+<li><p>7,200 runs × <strong>$0.003</strong> = <strong>$22/month</strong>.</p></li>
+<li><p><strong>Compute Costs:</strong> (~$50/month for light usage, scales if workflows are complex).</p></li>
+<li><p><strong>Storage &amp; API Calls:</strong> ~$5–10/month.</p></li>
+</ul>
+<p><strong>Estimated Cost: $80–100 CAD/month</strong></p></li>
+</ul>
+<hr>
+<h3 id="summary-of-estimated-monthly-costs-cad" class="anchored"><strong>Summary of Estimated Monthly Costs (CAD)</strong></h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Approach</th>
+<th>Estimated Monthly Cost (CAD)</th>
+<th>Key Considerations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1. Single Serverless Instance</strong></td>
+<td><strong>$100–120</strong></td>
+<td>Simple but limited scalability.</td>
+</tr>
+<tr class="even">
+<td><strong>2. Separate Serverless Instances</strong></td>
+<td><strong>$110–130</strong></td>
+<td>More parallelism but increased function calls.</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Apache Airflow on Compute</strong></td>
+<td><strong>$170–200</strong></td>
+<td>More control, but higher infra cost.</td>
+</tr>
+<tr class="even">
+<td><strong>4. Cloud Managed Orchestration</strong></td>
+<td><strong>$80–100</strong></td>
+<td>Scalable and cost-efficient.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="recommendation" class="anchored"><strong>Recommendation</strong></h3>
+<ul>
+<li><p><strong>If cost is the main factor</strong> → <strong>Approach 4</strong> (Managed Orchestration) is best.</p></li>
+<li><p><strong>If you prefer full control</strong> → <strong>Approach 3</strong> (Airflow).</p></li>
+<li><p><strong>If you need balance between control and scalability</strong> → <strong>Approach 2</strong> (Separate Serverless Instances).</p></li>
+</ul>
+</blockquote>
+<p>Me: In the first scenario are you properly accounting for the fact that the job would only run once every hour? Even if there are multiple processes being executed, it is still one job scheduled to run hourly.</p>
+<blockquote class="blockquote">
+<p>You’re absolutely right! In <strong>Scenario 1 (Single Serverless Instance Running an Orchestrator Script Hourly)</strong>, the <strong>orchestrator script only runs once per hour</strong>, making the cost lower than I initially estimated. Let’s correct that calculation.</p>
+<hr>
+<h3 id="scenario-1-revised-cost-calculation" class="anchored"><strong>Scenario 1: Revised Cost Calculation</strong></h3>
+<ul>
+<li><p><strong>Execution Frequency:</strong></p>
+<ul>
+<li><p>The orchestrator runs <strong>once every hour</strong> → <strong>24 runs per day</strong>.</p></li>
+<li><p>Each run executes <strong>one or more data flows sequentially</strong>.</p></li>
+<li><p>Assume an <strong>average runtime of 10 minutes per execution</strong> (to process multiple flows).</p></li>
+</ul></li>
+<li><p><strong>Compute Usage:</strong></p>
+<ul>
+<li><p>Suppose the instance scales between <strong>2–4 vCPUs and 4–8GB RAM</strong>, depending on the workload.</p></li>
+<li><p>At peak, assume <strong>2 vCPUs and 4GB RAM</strong> for the <strong>entire execution</strong>.</p></li>
+<li><p>Cost estimation:</p>
+<ul>
+<li><p><strong>24 runs/day × 30 days = 720 runs/month</strong>.</p></li>
+<li><p><strong>10 minutes per run</strong> = <strong>7,200 minutes per month</strong> = <strong>120 compute hours/month</strong>.</p></li>
+<li><p>Compute cost: <strong>$0.06 per vCPU-hour</strong> × <strong>2 vCPUs</strong> × <strong>120 hours</strong> = <strong>$14.40/month</strong>.</p></li>
+<li><p>Memory cost: <strong>$0.009 per GB-hour</strong> × <strong>4GB</strong> × <strong>120 hours</strong> = <strong>$4.32/month</strong>.</p></li>
+</ul></li>
+</ul></li>
+<li><p><strong>Storage &amp; Data Transfer:</strong></p>
+<ul>
+<li><p>Storage: <strong>~$5/month</strong>.</p></li>
+<li><p>Data transfer: <strong>~$5/month</strong>.</p></li>
+</ul></li>
+</ul>
+<p><strong>Total Estimated Cost: $25–35 CAD/month</strong></p>
+<hr>
+<h3 id="updated-cost-comparison-cad" class="anchored"><strong>Updated Cost Comparison (CAD)</strong></h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Approach</th>
+<th>Updated Monthly Cost (CAD)</th>
+<th>Key Considerations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1. Single Serverless Instance</strong></td>
+<td><strong>$25–35</strong> ✅</td>
+<td>Most cost-effective but limited parallelism.</td>
+</tr>
+<tr class="even">
+<td><strong>2. Separate Serverless Instances</strong></td>
+<td><strong>$110–130</strong></td>
+<td>More parallelism but higher function call costs.</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Apache Airflow on Compute</strong></td>
+<td><strong>$170–200</strong></td>
+<td>Full control but highest infra cost.</td>
+</tr>
+<tr class="even">
+<td><strong>4. Cloud Managed Orchestration</strong></td>
+<td><strong>$80–100</strong></td>
+<td>Scalable and cost-efficient.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="final-thoughts" class="anchored"><strong>Final Thoughts</strong></h3>
+<ul>
+<li><p><strong>Scenario 1 is now clearly the cheapest option (~$25–35 CAD/month).</strong></p></li>
+<li><p>However, it <strong>lacks parallelism</strong>—if multiple heavy processes need to run, the single instance might <strong>take longer to complete</strong>.</p></li>
+<li><p>If <strong>cost is the priority</strong>, Scenario 1 is the best choice.</p></li>
+<li><p>If <strong>scalability and efficiency</strong> matter, Scenario 4 (Managed Orchestration) is a good balance.</p></li>
+</ul>
+<p>Would you like a <strong>cost efficiency vs.&nbsp;performance trade-off chart</strong> to visualize these differences? 🚀</p>
+</blockquote>
+<p>Me: Finally, let’s say for Scenario 1 that we enable parallel processing if needed. For example, if 4 processes need to run simultaneously it can scale up to 4 cores.</p>
+<blockquote class="blockquote">
+<p>Great! If we allow <strong>Scenario 1</strong> to <strong>scale dynamically to support parallel processing</strong>, we need to adjust the compute cost based on variable CPU utilization. Here’s how that impacts the estimation.</p>
+<hr>
+<h3 id="scenario-1-revised-cost-with-parallel-processing" class="anchored"><strong>Scenario 1: Revised Cost with Parallel Processing</strong></h3>
+<h4 id="assumptions" class="anchored"><strong>Assumptions:</strong></h4>
+<ul>
+<li><p><strong>Orchestrator runs every hour</strong> (<strong>24 times per day</strong>).</p></li>
+<li><p>Each execution lasts <strong>10 minutes</strong> but now <strong>can use up to 4 vCPUs when needed</strong>.</p></li>
+<li><p><strong>Average vCPU usage per run</strong>:</p>
+<ul>
+<li><p>Some runs may use <strong>1–2 vCPUs</strong> (light workloads).</p></li>
+<li><p>Others may spike to <strong>4 vCPUs</strong> (heavy parallel processing).</p></li>
+<li><p>Assume an <strong>average usage of 3 vCPUs per execution</strong>.</p></li>
+</ul></li>
+<li><p><strong>Memory scales accordingly</strong>: Assume <strong>6GB RAM on average</strong>.</p></li>
+</ul>
+<h4 id="compute-cost-calculation" class="anchored"><strong>Compute Cost Calculation:</strong></h4>
+<ul>
+<li><p><strong>Total monthly runtime</strong>:</p>
+<ul>
+<li><strong>10 min per execution × 24 runs/day × 30 days = 7,200 minutes (~120 hours/month).</strong></li>
+</ul></li>
+<li><p><strong>CPU Cost:</strong></p>
+<ul>
+<li><p>Avg <strong>3 vCPUs per run</strong>.</p></li>
+<li><p><strong>$0.06 per vCPU-hour</strong> × <strong>3 vCPUs</strong> × <strong>120 hours</strong> = <strong>$21.60/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Memory Cost:</strong></p>
+<ul>
+<li><p>Avg <strong>6GB RAM per run</strong>.</p></li>
+<li><p><strong>$0.009 per GB-hour</strong> × <strong>6GB</strong> × <strong>120 hours</strong> = <strong>$6.48/month</strong>.</p></li>
+</ul></li>
+<li><p><strong>Storage &amp; Data Transfer:</strong></p>
+<ul>
+<li><strong>$5–10/month</strong> (no significant change).</li>
+</ul></li>
+</ul>
+<p><strong>Final Total Cost: ~$35–45 CAD/month</strong></p>
+<hr>
+<h3 id="final-cost-comparison-cad" class="anchored"><strong>Final Cost Comparison (CAD)</strong></h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Approach</th>
+<th>Monthly Cost (CAD)</th>
+<th>Key Considerations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1. Single Serverless Instance (Parallel Processing)</strong></td>
+<td><strong>$35–45</strong> ✅</td>
+<td>Cheapest, allows parallelism but limited by single-instance performance.</td>
+</tr>
+<tr class="even">
+<td><strong>2. Separate Serverless Instances</strong></td>
+<td><strong>$110–130</strong></td>
+<td>Fully scalable, better for frequent workloads.</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Apache Airflow on Compute</strong></td>
+<td><strong>$170–200</strong></td>
+<td>Self-managed, full control, higher maintenance.</td>
+</tr>
+<tr class="even">
+<td><strong>4. Cloud Managed Orchestration</strong></td>
+<td><strong>$80–100</strong></td>
+<td>Best for scalability without management overhead.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="conclusion" class="anchored"><strong>Conclusion</strong></h3>
+<ul>
+<li><p><strong>Scenario 1 with parallelism remains the cheapest (~$35–45 CAD/month).</strong></p></li>
+<li><p><strong>It allows parallel execution when needed</strong>, reducing the risk of long-running sequential jobs.</p></li>
+<li><p><strong>It’s best if workload concurrency is manageable</strong> (e.g., not exceeding 4 vCPUs often).</p></li>
+<li><p>If <strong>greater scalability is required</strong>, <strong>Scenario 4 (Managed Orchestration) would be the next best option</strong>.</p></li>
+</ul>
+<p>Would you like a cost vs.&nbsp;scalability chart to visualize these trade-offs? 🚀</p>
+</blockquote>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Data <em>flows</em> through a pipeline. I’ll use the terms data flow and pipeline interchangeably.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>By cost I’m mostly referring to cloud computing costs, although in theory it could reduce the cost of on-premise servers if it means purchasing fewer and less expensive servers.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>I’m using the term <em>moderate enterprise</em> loosely to mean any organization that has around 10-50 data flows that process gigabytes of data for ETL, machine learning, etc. in batch jobs occurring at hourly or daily frequencies. This is what we have at the airport and it works perfectly fine with room to grow. As jobs become heavier and/or more frequent, you may need to be run maestro multicore or break up the project into multiple maestro projects.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>At the airport we use Apache Nifi for legacy reasons and for the occasional time that streaming is needed. Managing the scheduling of each flow is inexplicably convoluted.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/whipson\.github\.io\/data-in-flight\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
