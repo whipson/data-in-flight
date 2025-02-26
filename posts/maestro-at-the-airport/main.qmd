@@ -1,0 +1,17 @@
+---
+title: Maestro at the Airport
+subtitle: Something
+author: Will Hipson
+date: "2025-01-12"
+date-modified: last-modified
+categories: [R, data pipelines, orchestration, maestro, cloudera, deployment, opinion]
+output: html
+draft: true
+---
+
+![Screenshot of Cloudera AI job history](images/cml.png)
+
+![Screenshot of custom Shiny application for monitoring maestro pipelines](images/obs.png)
+
+![Screenshot of sample query of status table stored in our database](images/hue.png)
+

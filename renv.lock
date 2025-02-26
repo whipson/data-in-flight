@@ -589,7 +589,7 @@
     },
     "maestro": {
       "Package": "maestro",
-      "Version": "0.4.1",
+      "Version": "0.5.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
@@ -609,7 +609,7 @@
         "timechange",
         "utils"
       ],
-      "Hash": "6e1a7796aea64efd784f46613a3d896b"
+      "Hash": "77a4ffc7d83bb4ae7bf7c4e8782937bd"
     },
     "magick": {
       "Package": "magick",
@@ -653,6 +653,17 @@
         "tools"
       ],
       "Hash": "18e9c28c1d3ca1560ce30658b22ce104"
+    },
+    "nycflights13": {
+      "Package": "nycflights13",
+      "Version": "1.0.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "tibble"
+      ],
+      "Hash": "61eb941328b49a62d7f9816dfed7d959"
     },
     "openssl": {
       "Package": "openssl",
