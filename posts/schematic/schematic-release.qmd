@@ -4,7 +4,7 @@ subtitle: "A new solution for data validation with a focus on user-facing messag
 author: "Will Hipson"
 date: "2025-04-28"
 date-modified: last-modified
-categories: [data-cleaning, R, packages, release, schematic]
+categories: [data cleaning, R, packages, release, schematic]
 ---
 
 I'm thrilled to announce the release of `schematic`, an R package that helps *you* (the developer) communicate data validation problems to non-technical users. With schematic, you can leverage `tidyselect` selectors and other conveniences to compare incoming data against a schema, avoiding punishing issues caused by invalid or poor quality data.
