@@ -1,0 +1,139 @@
+---
+title: "Announcing... schematic"
+subtitle: "A new solution for data validation with a focus on user-facing messages"
+author: "Will Hipson"
+date: "2025-04-28"
+date-modified: last-modified
+categories: [data-cleaning, R, packages, release, schematic]
+---
+
+I'm thrilled to announce the release of `schematic`, an R package that helps *you* (the developer) communicate data validation problems to non-technical users. With schematic, you can leverage `tidyselect` selectors and other conveniences to compare incoming data against a schema, avoiding punishing issues caused by invalid or poor quality data.
+
+schematic can now be installed via CRAN:
+
+```{r}
+#| eval: false
+install.packages("schematic")
+```
+
+Learn more about schematic by checking out the [docs](https://whipson.github.io/schematic/).
+
+## Motivation
+
+Having built and deployed a number of shiny apps or APIs that require users to upload data, I noticed a common pain point: **how do I communicate in simple terms any issues with the data and, more importantly, what those issues are?** I needed a way to present the user with error messages that satisfy two needs:
+
+1.  Simple and non-technical: allow developers to explain the problem rather than forcing users to understand the technical aspects of each test (you don't want to have to explain to users what `is.logical` means).
+2.  Holistic checking: present all validation issues rather than stopping evaluation on the first failure.
+
+There already exists a number of data validation packages for R, including (but not limited to) [pointblank](https://rstudio.github.io/pointblank/), [data.validator](http://appsilon.github.io/data.validator/), and [validate](https://github.com/data-cleaning/validate?tab=readme-ov-file); so why introduce a new player? schematic certainly shares similarities with many of these packages, but where I think it innovates over existing solutions is in its unique combination of the following:
+
+1.  Lightweight: Minimal dependencies with a clear focus on checking data without the bells and whistles of graphics, tables, and whatnot.
+2.  User-focused but developer-friendly: Developers (especially those approaching from a tidyverse mentality) will like the expressive syntax; users will appreciate the informative instructions on how to comprehensively fix data issues (no more whack-a-mole with fixing one problem only to learn there are many others).
+3.  Easy to integrate into applications (e.g., Shiny, Plumber): Schematic returns error messages rather than reports or data.frames, meaning that you don't need additional logic to trigger a run time error; just pass along the error message in a notification or error code.
+
+## How it works
+
+::: callout-warning
+All R errors that appear in this post are intentional for the purpose of demonstrating schematic's error messaging.
+:::
+
+Schematic is extremely simple. You only need to do two things: create a schema and then check a data.frame against the schema.
+
+A schema is a set of rules for columns in a data.frame. A rule consists of two parts:
+
+1.  **Selector** - the column(s) on which to apply to rule
+2.  **Predicate** - a function that must return a single TRUE or FALSE indicating the pass or fail of the check
+
+Let's imagine a scenario where we have survey data and we want to ensure it matches our expectations. Here's some sample survey data:
+
+```{r}
+survey_data <- data.frame(
+  id = c(1:3, NA, 5),
+  name = c("Emmett", "Billy", "Sally", "Woolley", "Duchess"),
+  age = c(19.2, 10, 22.5, 19, 19),
+  sex = c("M", "M", "F", "M", NA),
+  q_1 = c(TRUE, FALSE, FALSE, FALSE, TRUE),
+  q_2 = c(FALSE, FALSE, TRUE, TRUE, TRUE),
+  q_3 = c(TRUE, TRUE, TRUE, TRUE, FALSE)
+)
+```
+
+We declare a schema using `schema()` and provide it with rules following the format `selector ~ predicate`:
+
+```{r}
+library(schematic)
+
+my_schema <- schema(
+  id ~ is_incrementing,
+  id ~ is_all_distinct,
+  c(name, sex) ~ is.character,
+  c(id, age) ~ is_whole_number,
+  education ~ is.factor,
+  sex ~ function(x) all(x %in% c("M", "F")),
+  starts_with("q_") ~ is.logical,
+  final_score ~ is.numeric
+)
+```
+
+Then we use `check_schema` to evaluate our data against the schema. Any and all errors will be captured in the error message:
+
+```{r}
+#| error: true
+check_schema(
+  data = survey_data,
+  schema = my_schema
+)
+```
+
+The error message will combine columns into a single statement if they share the same validation issue. schematic will also automatically report if any columns declared in the schema are missing from the data.
+
+## Customizing the message
+
+By default the error message is helpful for developers, but if you need to communicate the schema mismatch to a non-technical person they'll have trouble understanding some or all of the errors. You can customize the output of each rule by inputting the rule as a named argument.
+
+Let's fix up the previous example to make the messages more understandable.
+
+```{r}
+#| error: true
+my_helpful_schema <- schema(
+  "values are increasing" = id ~ is_incrementing,
+  "values are all distinct" = id ~ is_all_distinct,
+  "is a string" = c(name, sex) ~ is.character,
+  "is a string with specific levels" = education ~ is.factor,
+  "is a whole number (no decimals)" = c(id, age) ~ is_whole_number,
+  "has only entries 'F' or 'M'" = sex ~ function(x) all(x %in% c("M", "F")),
+  "includes only TRUE or FALSE" = starts_with("q_") ~ is.logical,
+  "is a number" = final_score ~ is.numeric
+)
+
+check_schema(
+  data = survey_data,
+  schema = my_helpful_schema
+)
+```
+
+And that's really all there is to it. schematic does come with a few handy predicate functions like `is_whole_number()` which is a more permissive version of `is.integer()` that allows for columns stored as numeric or double but still requires non-decimal values.
+
+Moreover, schematic includes a handful of modifiers that allow you to change the behavior of some predicates, for instance, allowing NAs with `mod_nullable()`:
+
+```{r}
+# Before using `mod_nullable()` this rule triggered an error
+my_schema <- schema(
+  "all values are increasing (except empty values)" = id ~ mod_nullable(is_incrementing)
+)
+
+check_schema(
+  data = survey_data,
+  schema = my_schema
+)
+```
+
+## Conclusion
+
+In the end, my hope is to make schematic as simple as possible and help both developers and users. It's a package I designed initially with the sole intention of saving myself from writing validation code that takes up 80% of the actual codebase.[^1] I hope you find it useful too.
+
+[^1]: Not an exaggeration. I have a Plumber API that allows users to POST data to be processed. 80% of that plumber code is to validate the incoming data.
+
+#### Notes
+
+This post was created using `{r} R.version$version.string` and schematic version `{r} packageVersion("schematic")`.
