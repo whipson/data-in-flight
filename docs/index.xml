@@ -10,7 +10,425 @@
 <atom:link href="https://whipson.github.io/data-in-flight/index.xml" rel="self" type="application/rss+xml"/>
 <description>scrappy data engineering</description>
 <generator>quarto-1.7.13</generator>
-<lastBuildDate>Wed, 26 Feb 2025 04:00:00 GMT</lastBuildDate>
+<lastBuildDate>Mon, 28 Apr 2025 03:00:00 GMT</lastBuildDate>
+<item>
+  <title>Announcing… schematic</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/schematic/schematic-release.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>I’m thrilled to announce the release of <code>schematic</code>, an R package that helps <em>you</em> (the developer) communicate data validation problems to non-technical users. With schematic, you can leverage <code>tidyselect</code> selectors and other conveniences to compare incoming data against a schema, avoiding punishing issues caused by invalid or poor quality data.</p>
+<p>schematic can now be installed via CRAN:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">install.packages</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"schematic"</span>)</span></code></pre></div>
+</div>
+<p>Learn more about schematic by checking out the <a href="https://whipson.github.io/schematic/">docs</a>.</p>
+<section id="motivation" class="level2">
+<h2 class="anchored" data-anchor-id="motivation">Motivation</h2>
+<p>Having built and deployed a number of shiny apps or APIs that require users to upload data, I noticed a common pain point: <strong>how do I communicate in simple terms any issues with the data and, more importantly, what those issues are?</strong> I needed a way to present the user with error messages that satisfy two needs:</p>
+<ol type="1">
+<li>Simple and non-technical: allow developers to explain the problem rather than forcing users to understand the technical aspects of each test (you don’t want to have to explain to users what <code>is.logical</code> means).</li>
+<li>Holistic checking: present all validation issues rather than stopping evaluation on the first failure.</li>
+</ol>
+<p>There already exists a number of data validation packages for R, including (but not limited to) <a href="https://rstudio.github.io/pointblank/">pointblank</a>, <a href="http://appsilon.github.io/data.validator/">data.validator</a>, and <a href="https://github.com/data-cleaning/validate?tab=readme-ov-file">validate</a>; so why introduce a new player? schematic certainly shares similarities with many of these packages, but where I think it innovates over existing solutions is in its unique combination of the following:</p>
+<ol type="1">
+<li>Lightweight: Minimal dependencies with a clear focus on checking data without the bells and whistles of graphics, tables, and whatnot.</li>
+<li>User-focused but developer-friendly: Developers (especially those approaching from a tidyverse mentality) will like the expressive syntax; users will appreciate the informative instructions on how to comprehensively fix data issues (no more whack-a-mole with fixing one problem only to learn there are many others).</li>
+<li>Easy to integrate into applications (e.g., Shiny, Plumber): Schematic returns error messages rather than reports or data.frames, meaning that you don’t need additional logic to trigger a run time error; just pass along the error message in a notification or error code.</li>
+</ol>
+</section>
+<section id="how-it-works" class="level2">
+<h2 class="anchored" data-anchor-id="how-it-works">How it works</h2>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>All R errors that appear in this post are intentional for the purpose of demonstrating schematic’s error messaging.</p>
+</div>
+</div>
+<p>Schematic is extremely simple. You only need to do two things: create a schema and then check a data.frame against the schema.</p>
+<p>A schema is a set of rules for columns in a data.frame. A rule consists of two parts:</p>
+<ol type="1">
+<li><strong>Selector</strong> - the column(s) on which to apply to rule</li>
+<li><strong>Predicate</strong> - a function that must return a single TRUE or FALSE indicating the pass or fail of the check</li>
+</ol>
+<p>Let’s imagine a scenario where we have survey data and we want to ensure it matches our expectations. Here’s some sample survey data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">survey_data <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.frame</span>(</span>
+<span id="cb2-2">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">id =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>),</span>
+<span id="cb2-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Emmett"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Billy"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Sally"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Woolley"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Duchess"</span>),</span>
+<span id="cb2-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">age =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">19.2</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">22.5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">19</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">19</span>),</span>
+<span id="cb2-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sex =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"M"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"M"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"M"</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span>),</span>
+<span id="cb2-6">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">q_1 =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb2-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">q_2 =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb2-8">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">q_3 =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb2-9">)</span></code></pre></div>
+</div>
+<p>We declare a schema using <code>schema()</code> and provide it with rules following the format <code>selector ~ predicate</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(schematic)</span>
+<span id="cb3-2"></span>
+<span id="cb3-3">my_schema <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">schema</span>(</span>
+<span id="cb3-4">  id <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is_incrementing,</span>
+<span id="cb3-5">  id <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is_all_distinct,</span>
+<span id="cb3-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(name, sex) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is.character,</span>
+<span id="cb3-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(id, age) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is_whole_number,</span>
+<span id="cb3-8">  education <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is.factor,</span>
+<span id="cb3-9">  sex <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all</span>(x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"M"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F"</span>)),</span>
+<span id="cb3-10">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">starts_with</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"q_"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is.logical,</span>
+<span id="cb3-11">  final_score <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is.numeric</span>
+<span id="cb3-12">)</span></code></pre></div>
+</div>
+<p>Then we use <code>check_schema</code> to evaluate our data against the schema. Any and all errors will be captured in the error message:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">check_schema</span>(</span>
+<span id="cb4-2">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> survey_data,</span>
+<span id="cb4-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">schema =</span> my_schema</span>
+<span id="cb4-4">)</span></code></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `check_schema()`:
+! Schema Error:
+- Columns `education` and `final_score` missing from data
+- Column `id` failed check `is_incrementing`
+- Column `age` failed check `is_whole_number`
+- Column `sex` failed check `function(x) all(x %in% c("M", "F"))`</code></pre>
+</div>
+</div>
+<p>The error message will combine columns into a single statement if they share the same validation issue. schematic will also automatically report if any columns declared in the schema are missing from the data.</p>
+</section>
+<section id="customizing-the-message" class="level2">
+<h2 class="anchored" data-anchor-id="customizing-the-message">Customizing the message</h2>
+<p>By default the error message is helpful for developers, but if you need to communicate the schema mismatch to a non-technical person they’ll have trouble understanding some or all of the errors. You can customize the output of each rule by inputting the rule as a named argument.</p>
+<p>Let’s fix up the previous example to make the messages more understandable.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1">my_helpful_schema <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">schema</span>(</span>
+<span id="cb6-2">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"values are increasing"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> id <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is_incrementing,</span>
+<span id="cb6-3">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"values are all distinct"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> id <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is_all_distinct,</span>
+<span id="cb6-4">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"is a string"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(name, sex) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is.character,</span>
+<span id="cb6-5">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"is a string with specific levels"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> education <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is.factor,</span>
+<span id="cb6-6">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"is a whole number (no decimals)"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(id, age) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is_whole_number,</span>
+<span id="cb6-7">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"has only entries 'F' or 'M'"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> sex <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all</span>(x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"M"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F"</span>)),</span>
+<span id="cb6-8">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"includes only TRUE or FALSE"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">starts_with</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"q_"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is.logical,</span>
+<span id="cb6-9">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"is a number"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> final_score <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> is.numeric</span>
+<span id="cb6-10">)</span>
+<span id="cb6-11"></span>
+<span id="cb6-12"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">check_schema</span>(</span>
+<span id="cb6-13">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> survey_data,</span>
+<span id="cb6-14">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">schema =</span> my_helpful_schema</span>
+<span id="cb6-15">)</span></code></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `check_schema()`:
+! Schema Error:
+- Columns `education` and `final_score` missing from data
+- Column `id` failed check `values are increasing`
+- Column `age` failed check `is a whole number (no decimals)`
+- Column `sex` failed check `has only entries 'F' or 'M'`</code></pre>
+</div>
+</div>
+<p>And that’s really all there is to it. schematic does come with a few handy predicate functions like <code>is_whole_number()</code> which is a more permissive version of <code>is.integer()</code> that allows for columns stored as numeric or double but still requires non-decimal values.</p>
+<p>Moreover, schematic includes a handful of modifiers that allow you to change the behavior of some predicates, for instance, allowing NAs with <code>mod_nullable()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Before using `mod_nullable()` this rule triggered an error</span></span>
+<span id="cb8-2">my_schema <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">schema</span>(</span>
+<span id="cb8-3">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"all values are increasing (except empty values)"</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> id <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mod_nullable</span>(is_incrementing)</span>
+<span id="cb8-4">)</span>
+<span id="cb8-5"></span>
+<span id="cb8-6"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">check_schema</span>(</span>
+<span id="cb8-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> survey_data,</span>
+<span id="cb8-8">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">schema =</span> my_schema</span>
+<span id="cb8-9">)</span></code></pre></div>
+</div>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>In the end, my hope is to make schematic as simple as possible and help both developers and users. It’s a package I designed initially with the sole intention of saving myself from writing validation code that takes up 80% of the actual codebase.<sup>1</sup> I hope you find it useful too.</p>
+<section id="notes" class="level4">
+<h4 class="anchored" data-anchor-id="notes">Notes</h4>
+<p>This post was created using R version 4.5.0 (2025-04-11) and schematic version 0.1.0.</p>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Not an exaggeration. I have a Plumber API that allows users to POST data to be processed. 80% of that plumber code is to validate the incoming data.↩︎</p></li>
+</ol>
+</section></div> ]]></description>
+  <category>data-cleaning</category>
+  <category>R</category>
+  <category>packages</category>
+  <category>release</category>
+  <category>schematic</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/schematic/schematic-release.html</guid>
+  <pubDate>Mon, 28 Apr 2025 03:00:00 GMT</pubDate>
+</item>
 <item>
   <title>You Don’t Need Airflow: Orchestrate Many Data Flows in R with Maestro</title>
   <dc:creator>Will Hipson</dc:creator>

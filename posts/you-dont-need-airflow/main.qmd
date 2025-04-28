@@ -473,7 +473,7 @@ For each scenario, provide some estimate as to the hardware requirements (e.g., 
 > ### **Summary of Estimated Monthly Costs (CAD)**
 >
 > | Approach | Estimated Monthly Cost (CAD) | Key Considerations |
-> |------------------------|------------------------|------------------------|
+> |----|----|----|
 > | **1. Single Serverless Instance** | **\$100–120** | Simple but limited scalability. |
 > | **2. Separate Serverless Instances** | **\$110–130** | More parallelism but increased function calls. |
 > | **3. Apache Airflow on Compute** | **\$170–200** | More control, but higher infra cost. |
@@ -534,7 +534,7 @@ Me: In the first scenario are you properly accounting for the fact that the job 
 > ### **Updated Cost Comparison (CAD)**
 >
 > | Approach | Updated Monthly Cost (CAD) | Key Considerations |
-> |------------------------|------------------------|------------------------|
+> |----|----|----|
 > | **1. Single Serverless Instance** | **\$25–35** ✅ | Most cost-effective but limited parallelism. |
 > | **2. Separate Serverless Instances** | **\$110–130** | More parallelism but higher function call costs. |
 > | **3. Apache Airflow on Compute** | **\$170–200** | Full control but highest infra cost. |
@@ -607,7 +607,7 @@ Me: Finally, let's say for Scenario 1 that we enable parallel processing if need
 > ### **Final Cost Comparison (CAD)**
 >
 > | Approach | Monthly Cost (CAD) | Key Considerations |
-> |------------------------|------------------------|------------------------|
+> |----|----|----|
 > | **1. Single Serverless Instance (Parallel Processing)** | **\$35–45** ✅ | Cheapest, allows parallelism but limited by single-instance performance. |
 > | **2. Separate Serverless Instances** | **\$110–130** | Fully scalable, better for frequent workloads. |
 > | **3. Apache Airflow on Compute** | **\$170–200** | Self-managed, full control, higher maintenance. |
