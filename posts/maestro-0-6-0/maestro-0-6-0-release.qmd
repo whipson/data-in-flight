@@ -1,0 +1,247 @@
+---
+title: "maestro 0.6.0"
+subtitle: New capabilities for flagging pipelines, setting priorities, and optimizing your orchestration
+author: "Will Hipson"
+date: "2025-05-15"
+date-modified: last-modified
+categories: [R, data pipelines, orchestration, maestro, packages, release]
+---
+
+![](images/clipboard-2853204278.png){fig-align="center"}
+
+There are a bunch of new features to share as part of the 0.6.0 release of `maestro`:
+
+1.  `maestroFlags` tag and accompanying `get_flags()` function for tagging pipelines.
+2.  `maestroPriority` tag for determining the order in which simultaneously scheduled pipelines are executed.
+3.  New `get_slot_usage()` function to help identify busy (or quiet) time slots in the schedule.
+4.  `maestroStartTime` tag is more flexible to allow for HH:MM:SS formats.
+
+If you haven't heard of maestro, it's a package that helps you schedule your R scripts all in a single project using tags. You can learn more about it [here](../hello-maestro/hello-maestro.qmd).
+
+Get it from CRAN:
+
+```{r, eval=FALSE}
+install.packages("maestro")
+```
+
+## Flags
+
+A flag is an arbitrary string that could be used to classify or label a pipeline.[^1] You can now add any number of flags to a pipeline using the `maestroFlags` tag like so:
+
+[^1]: Perhaps a more appropriate name for this concept is **tag**. However, it would be confusing to have a maestro tag that is itself called maestroTags.
+
+```{r}
+#| eval: false
+# ./pipelines
+
+# You could use tags to classify a pipeline as critical
+#' @maestroFrequency 1 day
+#' @maestroStartTime 2024-06-03
+#' @maestroFlags critical 
+super_important <- function() {
+  # Obv. does something important
+}
+
+# You can have as many flags as you want separated by spaces
+#' @maestroFrequency hourly
+#' @maestroStartTime 2025-04-05 12:30:00
+#' @maestroFlags aviation api-access
+airlines <- function() {
+  # Accesses airlines from an API or whatever
+}
+```
+
+Once you've flagged some pipelines, you can access the flags for all pipelines in the schedule as a data.frame using `get_flags()`.
+
+```{r}
+#| echo: false
+dir.create("pipelines")
+writeLines(
+  "
+  # You could use tags to classify a pipeline as critical
+  #' @maestroFrequency 1 day
+  #' @maestroStartTime 2024-06-03
+  #' @maestroFlags critical 
+  super_important <- function() {
+    # Obv. does something important
+  }
+  
+  # You can have as many flags as you want separated by spaces
+  #' @maestroFrequency hourly
+  #' @maestroStartTime 2025-04-05 12:30:00
+  #' @maestroFlags aviation api-access
+  airlines <- function() {
+    # Accesses airlines from an API or whatever
+  }
+  ",
+  con = "pipelines/my_pipes.R"
+)
+```
+
+```{r}
+library(maestro)
+
+schedule <- build_schedule(quiet = TRUE)
+
+get_flags(schedule)
+```
+
+```{r}
+#| echo: false
+unlink("pipelines", recursive = TRUE)
+```
+
+This table could be used, for example, to send statuses reports to particular groups based on the tags, or trigger warnings/errors based on the criticality of the pipelines that failed. In these cases, it's helpful to join the table with either `get_status()` or `get_schedule()`.
+
+## Priority
+
+Sometimes you have multiple pipelines that run at the same time - say, if you have two hourly pipelines running on the same cadence. You may want to control the order in which these pipelines are executed[^2]. The new `maestroPriority` tag allows you to configure the priority in which pipelines are executed:
+
+[^2]: This is not the same as having a DAG pipeline where pipelines are chained together.
+
+```{r}
+#| eval: false
+
+#' @maestroFrequency 1 hour
+#' @maestroStartTime 10:00:00
+im_less_important <- function() {
+  # some less important stuff
+}
+
+#' @maestroFrequency 1 hour
+#' @maestroStartTime 10:00:00
+#' @maestroPriority 1
+i_go_first <- function() {
+  # this needs to happen first
+}
+```
+
+These pipelines run every hour on the 00 minute. The second pipeline has `maestroPriority 1`, indicating that it goes first when the orchestrator kicks off the pipelines. Pipelines without a priority always go last and pipelines with the same priority level use default ordering (alphabetical by script path name and then line number) within their own priority level.
+
+## Slot Usage
+
+As a maestro project grows it can become increasingly difficult to know when is the best time to schedule a pipeline. You typically want to avoid scheduling a bunch of pipelines at the same time (unless they *need* to be executed together or at that particular time), and you don't want a ton of empty time slots (i.e., times where the orchestrator kicks off no pipelines).
+
+Behold, the `get_slot_usage()` function!
+
+This function looks ahead to all scheduled runs of pipelines in the project and returns a data.frame indicating the pipelines that are scheduled to run on each time slot. It's easier to understand how this works in practice.
+
+Let's create a bunch of pipelines first:
+
+```{r}
+#| eval: false
+#' ./pipelines
+#' @maestroFrequency hourly
+#' @maestroStartTime 14:00:00
+hourly <- function() {
+  
+}
+
+#' @maestroFrequency daily
+#' @maestroStartTime 14:00:00
+daily <- function() {
+  
+}
+
+#' @maestroFrequency 3 hours
+#' @maestroStartTime 00:00:00
+every_3_hours <- function() {
+  
+}
+
+#' @maestroFrequency weekly
+#' @maestroStartTime 2025-05-15 04:00:00
+weekly <- function() {
+  
+}
+
+#' @maestroFrequency daily
+#' @maestroDays 4 9 16 20
+some_days <- function() {
+  
+}
+```
+
+```{r}
+#| echo: false
+dir.create("pipelines")
+writeLines(
+  "
+  #' @maestroFrequency hourly
+  #' @maestroStartTime 14:00:00
+  hourly <- function() {
+    
+  }
+  
+  #' @maestroFrequency daily
+  #' @maestroStartTime 14:00:00
+  daily <- function() {
+    
+  }
+  
+  #' @maestroFrequency 3 hours
+  #' @maestroStartTime 00:00:00
+  every_3_hours <- function() {
+    
+  }
+  
+  #' @maestroFrequency weekly
+  #' @maestroStartTime 2025-05-15 04:00:00
+  weekly <- function() {
+    
+  }
+  
+  #' @maestroFrequency daily
+  #' @maestroDays 4 9 16 20
+  some_days <- function() {
+    
+  }
+  ",
+  con = "pipelines/my_pipes.R"
+)
+```
+
+In this example we're considering running the orchestrator every 1 hour and we want to see for each hour time slot what pipelines are scheduled to run:
+
+```{r}
+schedule <- build_schedule(quiet = TRUE)
+
+get_slot_usage(
+  schedule,
+  orch_frequency = "1 hour",
+  slot_interval = "hour"
+)
+```
+
+```{r}
+#| echo: false
+unlink("pipelines", recursive = TRUE)
+```
+
+We can see that things are fairly evenly distributed aside from the hour 00 which has 3 pipelines scheduled. There are also many times where only 1 pipeline runs, so if we have a pipeline that runs daily we'd want to schedule it at a less busy time.
+
+We can change the `slot_interval` argument to any other valid unit of time to get a different picture.
+
+```{r}
+get_slot_usage(
+  schedule,
+  orch_frequency = "1 hour",
+  slot_interval = "day"
+)
+```
+
+A few things to consider when using `get_slot_usage()`:
+
+1.  It looks at all future instances of when a pipeline will run not just the next unit of time. In the last example, a weekly pipeline appears to run every day but it's just because all those days on any given month and year will involve running that pipeline.
+2.  Usually you should keep `orch_frequency` the same as it is in your use of `run_schedule()`, but `slot_interval` could depend on what frequency a new pipeline is. In general, you should use one more frequency unit of time than your proposed pipeline. For example, if you're planning a daily pipeline, use `slot_interval = "hour"` to identify what hour it should on.
+3.  This function is meant to be used interactively when you're developing a `maestro` project. It doesn't serve much value running in production.
+
+## Flexible Start Time
+
+A minor improvement was made to the `maestroStartTime` tag to allow the use of HH:MM:SS formatting for timestamps. This is particularly useful if you have a pipeline that runs hourly or more frequent because the choice of start date was arbitrary. It'll assume that the pipeline start date is the current date that the schedule was built.
+
+## Conclusion
+
+Check out the [release notes](https://whipson.github.io/maestro/news/index.html) for more details on what's new in version 0.6.0. If you find any bugs or want to suggest new features and improvements, please add them [here](https://github.com/whipson/maestro/issues) or reach out to me on [LinkedIn](https://www.linkedin.com/in/will-hipson/).
+
+Happy orchestrating!
