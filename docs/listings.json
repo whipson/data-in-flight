@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/maestro-0-6-0/maestro-0-6-0-release.html",
       "/posts/schematic/schematic-release.html",
       "/posts/you-dont-need-airflow/main.html",
       "/posts/maestro-dags/main.html",

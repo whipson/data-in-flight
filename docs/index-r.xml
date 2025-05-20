@@ -10,7 +10,365 @@
 <atom:link href="https://whipson.github.io/data-in-flight/index-r.xml" rel="self" type="application/rss+xml"/>
 <description>scrappy data engineering</description>
 <generator>quarto-1.7.13</generator>
-<lastBuildDate>Mon, 28 Apr 2025 03:00:00 GMT</lastBuildDate>
+<lastBuildDate>Thu, 15 May 2025 03:00:00 GMT</lastBuildDate>
+<item>
+  <title>maestro 0.6.0</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/maestro-0-6-0/maestro-0-6-0-release.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-0-6-0/images/clipboard-2853204278.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></p>
+</figure>
+</div>
+<p>There are a bunch of new features to share as part of the 0.6.0 release of <code>maestro</code>:</p>
+<ol type="1">
+<li><code>maestroFlags</code> tag and accompanying <code>get_flags()</code> function for tagging pipelines.</li>
+<li><code>maestroPriority</code> tag for determining the order in which simultaneously scheduled pipelines are executed.</li>
+<li>New <code>get_slot_usage()</code> function to help identify busy (or quiet) time slots in the schedule.</li>
+<li><code>maestroStartTime</code> tag is more flexible to allow for HH:MM:SS formats.</li>
+</ol>
+<p>If you haven’t heard of maestro, it’s a package that helps you schedule your R scripts all in a single project using tags. You can learn more about it <a href="../../posts/hello-maestro/hello-maestro.html">here</a>.</p>
+<p>Get it from CRAN:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">install.packages</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"maestro"</span>)</span></code></pre></div>
+</div>
+<section id="flags" class="level2">
+<h2 class="anchored" data-anchor-id="flags">Flags</h2>
+<p>A flag is an arbitrary string that could be used to classify or label a pipeline.<sup>1</sup> You can now add any number of flags to a pipeline using the <code>maestroFlags</code> tag like so:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># ./pipelines</span></span>
+<span id="cb2-2"></span>
+<span id="cb2-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># You could use tags to classify a pipeline as critical</span></span>
+<span id="cb2-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 day</span></span>
+<span id="cb2-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2024-06-03</span></span>
+<span id="cb2-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFlags critical </span></span>
+<span id="cb2-7">super_important <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-8">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Obv. does something important</span></span>
+<span id="cb2-9">}</span>
+<span id="cb2-10"></span>
+<span id="cb2-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># You can have as many flags as you want separated by spaces</span></span>
+<span id="cb2-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency hourly</span></span>
+<span id="cb2-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2025-04-05 12:30:00</span></span>
+<span id="cb2-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFlags aviation api-access</span></span>
+<span id="cb2-15">airlines <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-16">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Accesses airlines from an API or whatever</span></span>
+<span id="cb2-17">}</span></code></pre></div>
+</div>
+<p>Once you’ve flagged some pipelines, you can access the flags for all pipelines in the schedule as a data.frame using <code>get_flags()</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span>
+<span id="cb3-2"></span>
+<span id="cb3-3">schedule <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">build_schedule</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb3-4"></span>
+<span id="cb3-5"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_flags</span>(schedule)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 2
+  pipe_name       flag      
+  &lt;chr&gt;           &lt;chr&gt;     
+1 super_important critical  
+2 airlines        aviation  
+3 airlines        api-access</code></pre>
+</div>
+</div>
+<p>This table could be used, for example, to send statuses reports to particular groups based on the tags, or trigger warnings/errors based on the criticality of the pipelines that failed. In these cases, it’s helpful to join the table with either <code>get_status()</code> or <code>get_schedule()</code>.</p>
+</section>
+<section id="priority" class="level2">
+<h2 class="anchored" data-anchor-id="priority">Priority</h2>
+<p>Sometimes you have multiple pipelines that run at the same time - say, if you have two hourly pipelines running on the same cadence. You may want to control the order in which these pipelines are executed<sup>2</sup>. The new <code>maestroPriority</code> tag allows you to configure the priority in which pipelines are executed:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 hour</span></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 10:00:00</span></span>
+<span id="cb5-3">im_less_important <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb5-4">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># some less important stuff</span></span>
+<span id="cb5-5">}</span>
+<span id="cb5-6"></span>
+<span id="cb5-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 hour</span></span>
+<span id="cb5-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 10:00:00</span></span>
+<span id="cb5-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroPriority 1</span></span>
+<span id="cb5-10">i_go_first <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb5-11">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># this needs to happen first</span></span>
+<span id="cb5-12">}</span></code></pre></div>
+</div>
+<p>These pipelines run every hour on the 00 minute. The second pipeline has <code>maestroPriority 1</code>, indicating that it goes first when the orchestrator kicks off the pipelines. Pipelines without a priority always go last and pipelines with the same priority level use default ordering (alphabetical by script path name and then line number) within their own priority level.</p>
+</section>
+<section id="slot-usage" class="level2">
+<h2 class="anchored" data-anchor-id="slot-usage">Slot Usage</h2>
+<p>As a maestro project grows it can become increasingly difficult to know when is the best time to schedule a pipeline. You typically want to avoid scheduling a bunch of pipelines at the same time (unless they <em>need</em> to be executed together or at that particular time), and you don’t want a ton of empty time slots (i.e., times where the orchestrator kicks off no pipelines).</p>
+<p>Behold, the <code>get_slot_usage()</code> function!</p>
+<p>This function looks ahead to all scheduled runs of pipelines in the project and returns a data.frame indicating the pipelines that are scheduled to run on each time slot. It’s easier to understand how this works in practice.</p>
+<p>Let’s create a bunch of pipelines first:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' ./pipelines</span></span>
+<span id="cb6-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency hourly</span></span>
+<span id="cb6-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 14:00:00</span></span>
+<span id="cb6-4">hourly <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb6-5">  </span>
+<span id="cb6-6">}</span>
+<span id="cb6-7"></span>
+<span id="cb6-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency daily</span></span>
+<span id="cb6-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 14:00:00</span></span>
+<span id="cb6-10">daily <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb6-11">  </span>
+<span id="cb6-12">}</span>
+<span id="cb6-13"></span>
+<span id="cb6-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 3 hours</span></span>
+<span id="cb6-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 00:00:00</span></span>
+<span id="cb6-16">every_3_hours <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb6-17">  </span>
+<span id="cb6-18">}</span>
+<span id="cb6-19"></span>
+<span id="cb6-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency weekly</span></span>
+<span id="cb6-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2025-05-15 04:00:00</span></span>
+<span id="cb6-22">weekly <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb6-23">  </span>
+<span id="cb6-24">}</span>
+<span id="cb6-25"></span>
+<span id="cb6-26"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency daily</span></span>
+<span id="cb6-27"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroDays 4 9 16 20</span></span>
+<span id="cb6-28">some_days <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb6-29">  </span>
+<span id="cb6-30">}</span></code></pre></div>
+</div>
+<p>In this example we’re considering running the orchestrator every 1 hour and we want to see for each hour time slot what pipelines are scheduled to run:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1">schedule <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">build_schedule</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb7-2"></span>
+<span id="cb7-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_slot_usage</span>(</span>
+<span id="cb7-4">  schedule,</span>
+<span id="cb7-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"1 hour"</span>,</span>
+<span id="cb7-6">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">slot_interval =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hour"</span></span>
+<span id="cb7-7">)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 24 × 3
+   slot  n_runs pipe_names                      
+   &lt;chr&gt;  &lt;int&gt; &lt;chr&gt;                           
+ 1 00:00      3 hourly, every_3_hours, some_days
+ 2 01:00      1 hourly                          
+ 3 02:00      1 hourly                          
+ 4 03:00      2 hourly, every_3_hours           
+ 5 04:00      2 hourly, weekly                  
+ 6 05:00      1 hourly                          
+ 7 06:00      2 hourly, every_3_hours           
+ 8 07:00      1 hourly                          
+ 9 08:00      1 hourly                          
+10 09:00      2 hourly, every_3_hours           
+# ℹ 14 more rows</code></pre>
+</div>
+</div>
+<p>We can see that things are fairly evenly distributed aside from the hour 00 which has 3 pipelines scheduled. There are also many times where only 1 pipeline runs, so if we have a pipeline that runs daily we’d want to schedule it at a less busy time.</p>
+<p>We can change the <code>slot_interval</code> argument to any other valid unit of time to get a different picture.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_slot_usage</span>(</span>
+<span id="cb9-2">  schedule,</span>
+<span id="cb9-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"1 hour"</span>,</span>
+<span id="cb9-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">slot_interval =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"day"</span></span>
+<span id="cb9-5">)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 31 × 3
+   slot  n_runs pipe_names                                     
+   &lt;chr&gt;  &lt;int&gt; &lt;chr&gt;                                          
+ 1 01         4 hourly, daily, every_3_hours, weekly           
+ 2 02         4 hourly, daily, every_3_hours, weekly           
+ 3 03         4 hourly, daily, every_3_hours, weekly           
+ 4 04         5 hourly, daily, every_3_hours, weekly, some_days
+ 5 05         4 hourly, daily, every_3_hours, weekly           
+ 6 06         4 hourly, daily, every_3_hours, weekly           
+ 7 07         4 hourly, daily, every_3_hours, weekly           
+ 8 08         4 hourly, daily, every_3_hours, weekly           
+ 9 09         5 hourly, daily, every_3_hours, weekly, some_days
+10 10         4 hourly, daily, every_3_hours, weekly           
+# ℹ 21 more rows</code></pre>
+</div>
+</div>
+<p>A few things to consider when using <code>get_slot_usage()</code>:</p>
+<ol type="1">
+<li>It looks at all future instances of when a pipeline will run not just the next unit of time. In the last example, a weekly pipeline appears to run every day but it’s just because all those days on any given month and year will involve running that pipeline.</li>
+<li>Usually you should keep <code>orch_frequency</code> the same as it is in your use of <code>run_schedule()</code>, but <code>slot_interval</code> could depend on what frequency a new pipeline is. In general, you should use one more frequency unit of time than your proposed pipeline. For example, if you’re planning a daily pipeline, use <code>slot_interval = "hour"</code> to identify what hour it should on.</li>
+<li>This function is meant to be used interactively when you’re developing a <code>maestro</code> project. It doesn’t serve much value running in production.</li>
+</ol>
+</section>
+<section id="flexible-start-time" class="level2">
+<h2 class="anchored" data-anchor-id="flexible-start-time">Flexible Start Time</h2>
+<p>A minor improvement was made to the <code>maestroStartTime</code> tag to allow the use of HH:MM:SS formatting for timestamps. This is particularly useful if you have a pipeline that runs hourly or more frequent because the choice of start date was arbitrary. It’ll assume that the pipeline start date is the current date that the schedule was built.</p>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>Check out the <a href="https://whipson.github.io/maestro/news/index.html">release notes</a> for more details on what’s new in version 0.6.0. If you find any bugs or want to suggest new features and improvements, please add them <a href="https://github.com/whipson/maestro/issues">here</a> or reach out to me on <a href="https://www.linkedin.com/in/will-hipson/">LinkedIn</a>.</p>
+<p>Happy orchestrating!</p>
+
+
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Perhaps a more appropriate name for this concept is <strong>tag</strong>. However, it would be confusing to have a maestro tag that is itself called maestroTags.↩︎</p></li>
+<li id="fn2"><p>This is not the same as having a DAG pipeline where pipelines are chained together.↩︎</p></li>
+</ol>
+</section></div> ]]></description>
+  <category>R</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>packages</category>
+  <category>release</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/maestro-0-6-0/maestro-0-6-0-release.html</guid>
+  <pubDate>Thu, 15 May 2025 03:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Announcing… schematic</title>
   <dc:creator>Will Hipson</dc:creator>
@@ -421,7 +779,7 @@ font-style: inherit;">schema =</span> my_schema</span>
 <li id="fn1"><p>Not an exaggeration. I have a Plumber API that allows users to POST data to be processed. 80% of that plumber code is to validate the incoming data.↩︎</p></li>
 </ol>
 </section></div> ]]></description>
-  <category>data-cleaning</category>
+  <category>data cleaning</category>
   <category>R</category>
   <category>packages</category>
   <category>release</category>

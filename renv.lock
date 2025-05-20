@@ -275,17 +275,6 @@
       ],
       "Hash": "2720e3fd3dad08f34b19b56b3d6f073d"
     },
-    "cronR": {
-      "Package": "cronR",
-      "Version": "0.6.5",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "OS_type": "unix",
-      "Requirements": [
-        "digest"
-      ],
-      "Hash": "ea6b260263bda4a4ff4ec08674c75f8c"
-    },
     "curl": {
       "Package": "curl",
       "Version": "6.2.2",
@@ -699,9 +688,9 @@
     },
     "maestro": {
       "Package": "maestro",
-      "Version": "0.5.3",
+      "Version": "0.6.0",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "CRAN",
       "Requirements": [
         "R",
         "R.utils",
@@ -719,7 +708,7 @@
         "timechange",
         "utils"
       ],
-      "Hash": "0a266956664ec6f1a5a0378f63cc6c04"
+      "Hash": "8dba19e4170d7cb0a811bcc33990fafb"
     },
     "magick": {
       "Package": "magick",
@@ -1079,6 +1068,21 @@
         "viridisLite"
       ],
       "Hash": "c19df082ba346b0ffa6f833e92de34d1"
+    },
+    "schematic": {
+      "Package": "schematic",
+      "Version": "0.1.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "cli",
+        "glue",
+        "purrr",
+        "rlang",
+        "tidyselect"
+      ],
+      "Hash": "ca1558771d7ba211ac7c7d164ae21c83"
     },
     "snakecase": {
       "Package": "snakecase",
