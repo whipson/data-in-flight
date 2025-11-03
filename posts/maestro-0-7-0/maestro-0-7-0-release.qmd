@@ -1,0 +1,122 @@
+---
+title: "maestro 0.7.0 introduces conditional pipelines"
+author: "Will Hipson"
+date: "2025-11-03"
+date-modified: last-modified
+categories: [R, data pipelines, orchestration, maestro, packages, release]
+---
+
+The 0.7.0 release of maestro is out, and with it is the ability to conditionally run pipelines. In a nutshell, this is especially useful when you have DAG pipelines and you want to branch or only execute parts of a DAG when the output meets a particular condition.
+
+If you haven't heard of maestro, it's a script orchestrator for R. You can learn more about it [here](https://whipson.github.io/maestro/index.html).
+
+Get it from CRAN:
+
+```{r, eval=FALSE}
+install.packages("maestro")
+```
+
+## Conditional pipelines with `@maestroRunIf`
+
+A pipeline can be made conditional using the `maestroRunIf` tag. The value of the tag must be an R expression that returns a single TRUE or FALSE. What makes this tag special is that it can be combined with [DAG pipelines](https://whipson.github.io/maestro/articles/maestro-4-directed-acyclic-graphs.html).
+
+Let's say we have a two-step DAG pipeline for getting weather bulletins and sending out a notification in the event of an active bulletin. The first step of the DAG is to extract the bulletins from an open data source. The second step is to send the notification. However, we only want the second step to execute if there's an active bulletin.
+
+The code below shows this conditional logic. The pipeline `send_notification` has a `maestroRunIf` tag that checks the truthiness of `grepl("Alert", .input$bulletin_title)`. Note the use of `.input` to get the value from the inputting pipeline.
+
+```{r}
+#| eval: false
+# ./pipelines/bulletins.R
+
+#' @maestroFrequency 15 minutes
+#' @maestroStartTime 00:00:00
+get_bulletins <- function() {
+
+  req <- httr2::request(glue::glue("https://weather.gc.ca/rss/battleboard/ns10_e.xml"))
+  
+  resp <- req |>
+    httr2::req_perform() |>
+    httr2::resp_body_xml() |>
+    xml2::as_list()
+
+  bulletin_title <- resp$feed$title[[1]]
+  
+  return(
+    list(
+      bulletin_title = bulletin_title
+    )
+  )
+}
+
+#' @maestroInputs get_bulletins
+#' @maestroRunIf grepl("Alert", .input$bulletin_title)
+send_notification <- function(.input) {
+
+  # Pretend this code sends to email or whatever
+  message(.input$bulletin_title)
+}
+```
+
+Now run the schedule and the `send_notification` pipeline will run conditional on a weather alert.
+
+```{r}
+#| echo: false
+dir.create("pipelines")
+writeLines(
+  "
+  #' @maestroFrequency 15 minutes
+  #' @maestroStartTime 00:00:00
+  get_bulletins <- function() {
+  
+    req <- httr2::request(glue::glue('https://weather.gc.ca/rss/battleboard/ns10_e.xml'))
+    
+    resp <- req |>
+      httr2::req_perform() |>
+      httr2::resp_body_xml() |>
+      xml2::as_list()
+  
+    bulletin_title <- resp$feed$title[[1]]
+    
+    return(
+      list(
+        bulletin_title = bulletin_title
+      )
+    )
+  }
+  
+  #' @maestroInputs get_bulletins
+  #' @maestroRunIf grepl('Alert', .input$bulletin_title)
+  send_notification <- function(.input) {
+  
+    # Pretend this code sends to email or whatever
+    message(.input$bulletin_title)
+  }
+  ",
+  con = "pipelines/my_pipes.R"
+)
+```
+
+```{r}
+library(maestro)
+
+schedule <- build_schedule(quiet = TRUE)
+
+invocation <- run_schedule(
+  schedule, 
+  orch_frequency = "15 minutes",
+  log_to_console = TRUE
+)
+```
+
+```{r}
+#| echo: false
+unlink("pipelines", recursive = TRUE)
+```
+
+Conditional pipelines can be used for more complex branching logic as well. For more examples, check out the [vignette](https://whipson.github.io/maestro/articles/maestro-8-conditionals.html) on conditionals.
+
+## Call to maestro users
+
+maestro has been on CRAN for over 1 year now. It's been a rewarding experience developing this package; not to mention it being an integral part in the [tech stack where I work](https://whipson.github.io/data-in-flight/posts/you-dont-need-airflow/main.html). I'm excited about the future of maestro too. This is why I'm calling out to maestro users out there. I'd love to hear about how you're using maestro - especially if you're using it in production. I'd also welcome any feedback and suggestions as we chart the path for future of maestro. You can message me via [LinkedIn](https://www.linkedin.com/in/will-hipson/) or if you have specific feature requests I'd welcome issues on Github [here](https://github.com/whipson/maestro/issues).
+
+As always, happy orchestrating!

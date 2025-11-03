@@ -9,8 +9,246 @@
 <link>https://whipson.github.io/data-in-flight/</link>
 <atom:link href="https://whipson.github.io/data-in-flight/index.xml" rel="self" type="application/rss+xml"/>
 <description>scrappy data engineering</description>
-<generator>quarto-1.7.13</generator>
-<lastBuildDate>Thu, 15 May 2025 03:00:00 GMT</lastBuildDate>
+<generator>quarto-1.8.25</generator>
+<lastBuildDate>Mon, 03 Nov 2025 04:00:00 GMT</lastBuildDate>
+<item>
+  <title>maestro 0.7.0 introduces conditional pipelines</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/maestro-0-7-0/maestro-0-7-0-release.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>The 0.7.0 release of maestro is out, and with it is the ability to conditionally run pipelines. In a nutshell, this is especially useful when you have DAG pipelines and you want to branch or only execute parts of a DAG when the output meets a particular condition.</p>
+<p>If you haven’t heard of maestro, it’s a script orchestrator for R. You can learn more about it <a href="https://whipson.github.io/maestro/index.html">here</a>.</p>
+<p>Get it from CRAN:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">install.packages</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"maestro"</span>)</span></code></pre></div></div>
+</div>
+<section id="conditional-pipelines-with-maestrorunif" class="level2">
+<h2 class="anchored" data-anchor-id="conditional-pipelines-with-maestrorunif">Conditional pipelines with <code>@maestroRunIf</code></h2>
+<p>A pipeline can be made conditional using the <code>maestroRunIf</code> tag. The value of the tag must be an R expression that returns a single TRUE or FALSE. What makes this tag special is that it can be combined with <a href="https://whipson.github.io/maestro/articles/maestro-4-directed-acyclic-graphs.html">DAG pipelines</a>.</p>
+<p>Let’s say we have a two-step DAG pipeline for getting weather bulletins and sending out a notification in the event of an active bulletin. The first step of the DAG is to extract the bulletins from an open data source. The second step is to send the notification. However, we only want the second step to execute if there’s an active bulletin.</p>
+<p>The code below shows this conditional logic. The pipeline <code>send_notification</code> has a <code>maestroRunIf</code> tag that checks the truthiness of <code>grepl("Alert", .input$bulletin_title)</code>. Note the use of <code>.input</code> to get the value from the inputting pipeline.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># ./pipelines/bulletins.R</span></span>
+<span id="cb2-2"></span>
+<span id="cb2-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 15 minutes</span></span>
+<span id="cb2-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 00:00:00</span></span>
+<span id="cb2-5">get_bulletins <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-6"></span>
+<span id="cb2-7">  req <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">request</span>(glue<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">glue</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://weather.gc.ca/rss/battleboard/ns10_e.xml"</span>))</span>
+<span id="cb2-8">  </span>
+<span id="cb2-9">  resp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> req <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-10">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">req_perform</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-11">    httr2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">resp_body_xml</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-12">    xml2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as_list</span>()</span>
+<span id="cb2-13"></span>
+<span id="cb2-14">  bulletin_title <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> resp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>feed<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>title[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]]</span>
+<span id="cb2-15">  </span>
+<span id="cb2-16">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(</span>
+<span id="cb2-17">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb2-18">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">bulletin_title =</span> bulletin_title</span>
+<span id="cb2-19">    )</span>
+<span id="cb2-20">  )</span>
+<span id="cb2-21">}</span>
+<span id="cb2-22"></span>
+<span id="cb2-23"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroInputs get_bulletins</span></span>
+<span id="cb2-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroRunIf grepl("Alert", .input$bulletin_title)</span></span>
+<span id="cb2-25">send_notification <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(.input) {</span>
+<span id="cb2-26"></span>
+<span id="cb2-27">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Pretend this code sends to email or whatever</span></span>
+<span id="cb2-28">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">message</span>(.input<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>bulletin_title)</span>
+<span id="cb2-29">}</span></code></pre></div></div>
+</div>
+<p>Now run the schedule and the <code>send_notification</code> pipeline will run conditional on a weather alert.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span>
+<span id="cb3-2"></span>
+<span id="cb3-3">schedule <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">build_schedule</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb3-4"></span>
+<span id="cb3-5">invocation <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_schedule</span>(</span>
+<span id="cb3-6">  schedule, </span>
+<span id="cb3-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"15 minutes"</span>,</span>
+<span id="cb3-8">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">log_to_console =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb3-9">)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── [2025-11-03 08:57:59]
+Running pipelines ▶ </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ get_bulletins</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ get_bulletins [246ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ ? send_notification</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ ? send_notification [12ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ |-send_notification</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ |-send_notification [18ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── [2025-11-03 08:58:00]
+Pipeline execution completed ■ | 0.294 sec elapsed </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ 2 successes | ! 0 warnings | ✖ 0 errors | ◼ 2 total</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Next scheduled pipelines ❯ </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Pipe name | Next scheduled run</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>• get_bulletins | 2025-11-03 13:15:00</code></pre>
+</div>
+</div>
+<p>Conditional pipelines can be used for more complex branching logic as well. For more examples, check out the <a href="https://whipson.github.io/maestro/articles/maestro-8-conditionals.html">vignette</a> on conditionals.</p>
+</section>
+<section id="call-to-maestro-users" class="level2">
+<h2 class="anchored" data-anchor-id="call-to-maestro-users">Call to maestro users</h2>
+<p>maestro has been on CRAN for over 1 year now. It’s been a rewarding experience developing this package; not to mention it being an integral part in the <a href="https://whipson.github.io/data-in-flight/posts/you-dont-need-airflow/main.html">tech stack where I work</a>. I’m excited about the future of maestro too. This is why I’m calling out to maestro users out there. I’d love to hear about how you’re using maestro - especially if you’re using it in production. I’d also welcome any feedback and suggestions as we chart the path for future of maestro. You can message me via <a href="https://www.linkedin.com/in/will-hipson/">LinkedIn</a> or if you have specific feature requests I’d welcome issues on Github <a href="https://github.com/whipson/maestro/issues">here</a>.</p>
+<p>As always, happy orchestrating!</p>
+
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>packages</category>
+  <category>release</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/maestro-0-7-0/maestro-0-7-0-release.html</guid>
+  <pubDate>Mon, 03 Nov 2025 04:00:00 GMT</pubDate>
+</item>
 <item>
   <title>maestro 0.6.0</title>
   <dc:creator>Will Hipson</dc:creator>
