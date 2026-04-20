@@ -65,7 +65,7 @@ every_3_hours <- function() {
 
 ```{r}
 #| echo: false
-dir.create("pipelines")
+dir.create("pipelines", showWarnings = FALSE)
 writeLines(
   "
   #' @maestroFrequency hourly

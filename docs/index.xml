@@ -100,16 +100,11 @@ font-style: inherit;">function</span>() {</span>
 <span id="cb2-17">}</span></code></pre></div></div>
 </div>
 <div class="cell">
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning in dir.create("pipelines"): 'pipelines' already exists</code></pre>
-</div>
-</div>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="fu" style="color: #4758AB;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">library</span>(maestro)</span>
-<span id="cb4-2"></span>
-<span id="cb4-3">schedule <span class="ot" style="color: #003B4F;
+<span id="cb3-2"></span>
+<span id="cb3-3">schedule <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
@@ -118,13 +113,13 @@ background-color: null;
 font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">TRUE</span>)</span>
-<span id="cb4-4"></span>
-<span id="cb4-5"><span class="fu" style="color: #4758AB;
+<span id="cb3-4"></span>
+<span id="cb3-5"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">get_run_sequence</span>(schedule) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb4-6">  <span class="fu" style="color: #4758AB;
+<span id="cb3-6">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">head</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -155,15 +150,36 @@ font-style: inherit;">10</span>)</span></code></pre></div></div>
 <h3 class="anchored" data-anchor-id="weekday-abbreviations">Weekday abbreviations</h3>
 <p>Take a pipeline that is supposed to run every week at 04:00:00 on Monday. Prior to 1.1.0 you would need to choose an arbitrary Monday date as the start time, like this:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="co" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' Old pre 1.1.0 method for scheduling a weekly pipeline on a Monday</span></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency weekly</span></span>
+<span id="cb5-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroStartTime 2026-04-13 04:00:00</span></span>
+<span id="cb5-4">weekly_pipeline <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb5-5">  </span>
+<span id="cb5-6">}</span></code></pre></div></div>
+</div>
+<p>Looking at this code, it’s not obvious that the pipeline is supposed to run on Mondays. You’d need to look back at the calendar.</p>
+<p>Now in 1.1.0, you can specify a weekday for pipelines running on a weekly cadence:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' New, 1.1.0 intuitive way</span></span>
 <span id="cb6-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @maestroFrequency weekly</span></span>
 <span id="cb6-3"><span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">#' @maestroStartTime 2026-04-13 04:00:00</span></span>
+font-style: inherit;">#' @maestroStartTime Mon 04:00:00</span></span>
 <span id="cb6-4">weekly_pipeline <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
@@ -173,47 +189,26 @@ font-style: inherit;">function</span>() {</span>
 <span id="cb6-5">  </span>
 <span id="cb6-6">}</span></code></pre></div></div>
 </div>
-<p>Looking at this code, it’s not obvious that the pipeline is supposed to run on Mondays. You’d need to look back at the calendar.</p>
-<p>Now in 1.1.0, you can specify a weekday for pipelines running on a weekly cadence:</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#' New, 1.1.0 intuitive way</span></span>
-<span id="cb7-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#' @maestroFrequency weekly</span></span>
-<span id="cb7-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#' @maestroStartTime Mon 04:00:00</span></span>
-<span id="cb7-4">weekly_pipeline <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">function</span>() {</span>
-<span id="cb7-5">  </span>
-<span id="cb7-6">}</span></code></pre></div></div>
-</div>
 <p>Now there’s no arbitrary start date and the logic is clearer. This works so long as you use the 3-character abbreviation for the weekday. Note that this also applies to pipelines with a biweekly frequency.</p>
 </section>
 <section id="month-dates" class="level3">
 <h3 class="anchored" data-anchor-id="month-dates">Month dates</h3>
 <p>Similarly, we can avoid the arbitrariness of a specific date in the case of monthly pipelines by specifying the numeric date like so:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><span class="co" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @maestroFrequency monthly</span></span>
-<span id="cb8-2"><span class="co" style="color: #5E5E5E;
+<span id="cb7-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @maestroStartTime 2 04:00:00</span></span>
-<span id="cb8-3">monthly_pipeline <span class="ot" style="color: #003B4F;
+<span id="cb7-3">monthly_pipeline <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>() {</span>
-<span id="cb8-4">  </span>
-<span id="cb8-5">}</span></code></pre></div></div>
+<span id="cb7-4">  </span>
+<span id="cb7-5">}</span></code></pre></div></div>
 </div>
 <p>The above pipeline would trigger every 2nd day of the month at 04:00:00.</p>
 </section>
@@ -224,61 +219,61 @@ font-style: inherit;">function</span>() {</span>
 <p>For this reason, we modified the output of <code>get_status()</code> to include one row per unique pipeline invocation in a single orchestrator run. The same logic needed to be applied to <code>get_artifacts()</code>. We also gave each invocation a unique <code>run_id</code> to better track the distinct execution of a pipeline and which execution inputted into which downstream pipeline.</p>
 <p>Take a look at the following trivial fan-in example where both p1 and p2 input into p3:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><span class="co" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' ./pipelines</span></span>
-<span id="cb9-2"><span class="co" style="color: #5E5E5E;
+<span id="cb8-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @maestroFrequency hourly</span></span>
-<span id="cb9-3"><span class="co" style="color: #5E5E5E;
+<span id="cb8-3"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @maestroOutputs p3</span></span>
-<span id="cb9-4">p1 <span class="ot" style="color: #003B4F;
+<span id="cb8-4">p1 <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>() {</span>
-<span id="cb9-5">  <span class="dv" style="color: #AD0000;
+<span id="cb8-5">  <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span></span>
-<span id="cb9-6">}</span>
-<span id="cb9-7"></span>
-<span id="cb9-8"><span class="co" style="color: #5E5E5E;
+<span id="cb8-6">}</span>
+<span id="cb8-7"></span>
+<span id="cb8-8"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @maestroFrequency hourly</span></span>
-<span id="cb9-9"><span class="co" style="color: #5E5E5E;
+<span id="cb8-9"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @maestroOutputs p3</span></span>
-<span id="cb9-10">p2 <span class="ot" style="color: #003B4F;
+<span id="cb8-10">p2 <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>() {</span>
-<span id="cb9-11">  <span class="dv" style="color: #AD0000;
+<span id="cb8-11">  <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span></span>
-<span id="cb9-12">}</span>
-<span id="cb9-13"></span>
-<span id="cb9-14"><span class="co" style="color: #5E5E5E;
+<span id="cb8-12">}</span>
+<span id="cb8-13"></span>
+<span id="cb8-14"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @maestro</span></span>
-<span id="cb9-15">p3 <span class="ot" style="color: #003B4F;
+<span id="cb8-15">p3 <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(.input) {</span>
-<span id="cb9-16">  .input <span class="sc" style="color: #5E5E5E;
+<span id="cb8-16">  .input <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span></span>
-<span id="cb9-17">}</span></code></pre></div></div>
+<span id="cb8-17">}</span></code></pre></div></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1">schedule <span class="ot" style="color: #003B4F;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1">schedule <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
@@ -287,36 +282,36 @@ background-color: null;
 font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">TRUE</span>)</span>
-<span id="cb10-2"></span>
-<span id="cb10-3">output <span class="ot" style="color: #003B4F;
+<span id="cb9-2"></span>
+<span id="cb9-3">output <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">run_schedule</span>(</span>
-<span id="cb10-4">  schedule,</span>
-<span id="cb10-5">  <span class="at" style="color: #657422;
+<span id="cb9-4">  schedule,</span>
+<span id="cb9-5">  <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"1 hour"</span>,</span>
-<span id="cb10-6">  <span class="at" style="color: #657422;
+<span id="cb9-6">  <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">n_show_next =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span></span>
-<span id="cb10-7">)</span></code></pre></div></div>
+<span id="cb9-7">)</span></code></pre></div></div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2026-04-20 13:52:05]
+<pre><code>── [2026-04-20 14:01:36]
 Running pipelines ▶ </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>ℹ p1</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ p1 [11ms]</code></pre>
+<pre><code>✔ p1 [12ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
@@ -325,7 +320,7 @@ Running pipelines ▶ </code></pre>
 <pre><code>ℹ   |-p3</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔   |-p3 [18ms]</code></pre>
+<pre><code>✔   |-p3 [19ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
@@ -334,7 +329,7 @@ Running pipelines ▶ </code></pre>
 <pre><code>ℹ p2</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔ p2 [4ms]</code></pre>
+<pre><code>✔ p2 [5ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
@@ -343,14 +338,14 @@ Running pipelines ▶ </code></pre>
 <pre><code>ℹ   |-p3</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>✔   |-p3 [9ms]</code></pre>
+<pre><code>✔   |-p3 [10ms]</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2026-04-20 13:52:05]
-Pipeline execution completed ■ | 0.081 sec elapsed </code></pre>
+<pre><code>── [2026-04-20 14:01:37]
+Pipeline execution completed ■ | 0.089 sec elapsed </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>✔ 4 successes | ! 0 warnings | ✖ 0 errors | ◼ 4 total</code></pre>
@@ -358,7 +353,7 @@ Pipeline execution completed ■ | 0.081 sec elapsed </code></pre>
 <div class="cell-output cell-output-stderr">
 <pre><code>────────────────────────────────────────────────────────────────────────────────</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><span class="fu" style="color: #4758AB;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">get_status</span>(schedule)[, <span class="fu" style="color: #4758AB;
 background-color: null;
@@ -375,12 +370,12 @@ font-style: inherit;">"lineage"</span>)]</span></code></pre></div></div>
 <pre><code># A tibble: 4 × 4
   pipe_name run_id input_run_id lineage
   &lt;chr&gt;     &lt;chr&gt;  &lt;chr&gt;        &lt;chr&gt;  
-1 p1        tGivpG &lt;NA&gt;         p1     
-2 p2        NoyIHa &lt;NA&gt;         p2     
-3 p3        inHmqZ tGivpG       p1-&gt;p3 
-4 p3        fYHA1A NoyIHa       p2-&gt;p3 </code></pre>
+1 p1        KbGACI &lt;NA&gt;         p1     
+2 p2        mbmNzx &lt;NA&gt;         p2     
+3 p3        loyy2f KbGACI       p1-&gt;p3 
+4 p3        Zs1Avj mbmNzx       p2-&gt;p3 </code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><span class="fu" style="color: #4758AB;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">get_artifacts</span>(schedule)</span></code></pre></div></div>
 <div class="cell-output cell-output-stdout">
@@ -391,10 +386,10 @@ $p2
 [1] 2
 
 $p3
-$p3$inHmqZ
+$p3$loyy2f
 [1] 2
 
-$p3$fYHA1A
+$p3$Zs1Avj
 [1] 4</code></pre>
 </div>
 </div>
@@ -3164,6 +3159,22 @@ Frequency = 365
   <category>release</category>
   <guid>https://whipson.github.io/data-in-flight/posts/maestro-dags/main.html</guid>
   <pubDate>Fri, 22 Nov 2024 04:00:00 GMT</pubDate>
+</item>
+<item>
+  <title></title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/maestro-posit-connect/main.html</link>
+  <description><![CDATA[ undefined ]]></description>
+  <category>R</category>
+  <category>data engineering</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>deployment</category>
+  <category>posit connect</category>
+  <category>tutorial</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/maestro-posit-connect/main.html</guid>
+  <pubDate>Wed, 02 Oct 2024 03:00:00 GMT</pubDate>
 </item>
 <item>
   <title>maestro 0.3.0</title>
