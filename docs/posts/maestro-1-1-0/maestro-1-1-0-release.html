@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Will Hipson">
-<meta name="dcterms.date" content="2026-04-20">
+<meta name="dcterms.date" content="2026-04-21">
 
 <title>maestro reaches stable release – data-in-flight</title>
 <style>
@@ -189,14 +189,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">April 20, 2026</p>
+        <p class="date">April 21, 2026</p>
       </div>
     </div>
     
       <div>
       <div class="quarto-title-meta-heading">Modified</div>
       <div class="quarto-title-meta-contents">
-        <p class="date-modified">April 15, 2026</p>
+        <p class="date-modified">April 20, 2026</p>
       </div>
     </div>
       
@@ -232,7 +232,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="schedules-are-more-portable" class="level2">
 <h2 class="anchored" data-anchor-id="schedules-are-more-portable">Schedules are more portable</h2>
-<p>One problem with the old way maestro built schedules was that caching and reusing a schedule object (as opposed to rebuilding it every time) eventually lead to schedule expiry<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. As of maestro 1.1.0, schedules can safely be cached and reused avoiding the need to run <code>build_schedule</code> on every orchestrator run. It’s as simple as running <code>saveRDS</code> on a prebuilt schedule and then using <code>readRDS</code> to load it into the production run.</p>
+<p>One problem with the old way maestro built schedules was that caching and reusing a schedule object (as opposed to rebuilding it every time) eventually led to schedule expiry<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. As of maestro 1.1.0, schedules can safely be cached and reused avoiding the need to run <code>build_schedule</code> on every orchestrator run. It’s as simple as running <code>saveRDS</code> on a prebuilt schedule and then using <code>readRDS</code> to load it into the production run.</p>
 <section id="caveats-when-caching-a-schedule" class="level3">
 <h3 class="anchored" data-anchor-id="caveats-when-caching-a-schedule">Caveats when caching a schedule</h3>
 <p>It’s important to note that caching a schedule won’t pick up changes to pipeline configuration or the addition/deletion of pipelines. Therefore, it’s recommended to rebuild and cache once on deploy, then use the prebuilt schedule on each execution. A CI/CD pattern is useful to ensure that changes to pipeline configuration trigger the rebuild of a schedule.</p>
@@ -277,16 +277,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 10 × 3
    pipe_name     scheduled_time      is_primary
    &lt;chr&gt;         &lt;dttm&gt;              &lt;lgl&gt;     
- 1 hourly        2026-04-15 00:00:00 TRUE      
- 2 hourly        2026-04-15 01:00:00 TRUE      
- 3 every_3_hours 2026-04-15 01:00:00 TRUE      
- 4 hourly        2026-04-15 02:00:00 TRUE      
- 5 daily         2026-04-15 02:00:00 TRUE      
- 6 hourly        2026-04-15 03:00:00 TRUE      
- 7 hourly        2026-04-15 04:00:00 TRUE      
- 8 every_3_hours 2026-04-15 04:00:00 TRUE      
- 9 hourly        2026-04-15 05:00:00 TRUE      
-10 hourly        2026-04-15 06:00:00 TRUE      </code></pre>
+ 1 hourly        2026-04-20 00:00:00 TRUE      
+ 2 hourly        2026-04-20 01:00:00 TRUE      
+ 3 every_3_hours 2026-04-20 01:00:00 TRUE      
+ 4 hourly        2026-04-20 02:00:00 TRUE      
+ 5 daily         2026-04-20 02:00:00 TRUE      
+ 6 hourly        2026-04-20 03:00:00 TRUE      
+ 7 hourly        2026-04-20 04:00:00 TRUE      
+ 8 every_3_hours 2026-04-20 04:00:00 TRUE      
+ 9 hourly        2026-04-20 05:00:00 TRUE      
+10 hourly        2026-04-20 06:00:00 TRUE      </code></pre>
 </div>
 </div>
 </section>
@@ -329,8 +329,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The above pipeline would trigger every 2nd day of the month at 04:00:00.</p>
 </section>
 </section>
-<section id="better-observability-of-dag-pipelines-that-fan-in---rehauling-get_status." class="level2">
-<h2 class="anchored" data-anchor-id="better-observability-of-dag-pipelines-that-fan-in---rehauling-get_status.">Better observability of DAG pipelines that fan-in - rehauling <code>get_status()</code>.</h2>
+<section id="better-observability-of-dag-pipelines-that-fan-in---overhauling-get_status." class="level2">
+<h2 class="anchored" data-anchor-id="better-observability-of-dag-pipelines-that-fan-in---overhauling-get_status.">Better observability of DAG pipelines that fan-in - overhauling <code>get_status()</code>.</h2>
 <p>In DAG nomenclature, fan-in occurs when multiple different pipelines input into a single pipeline. A good example would be a generic ‘send_logs_to_storage’ pipeline that is reused by every pipeline in a project as a <code>maestroOutputs</code>. Prior to stable release, this operation worked in maestro, but the output of <code>get_status</code> would only report on the last invocation even if it was called multiple times.</p>
 <p>For this reason, we modified the output of <code>get_status()</code> to include one row per unique pipeline invocation in a single orchestrator run. The same logic needed to be applied to <code>get_artifacts()</code>. We also gave each invocation a unique <code>run_id</code> to better track the distinct execution of a pipeline and which execution inputted into which downstream pipeline.</p>
 <p>Take a look at the following trivial fan-in example where both p1 and p2 input into p3:</p>
@@ -365,7 +365,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2026-04-15 15:32:30]
+<pre><code>── [2026-04-20 13:52:05]
 Running pipelines ▶ </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
@@ -405,8 +405,8 @@ Running pipelines ▶ </code></pre>
 <pre><code></code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>── [2026-04-15 15:32:31]
-Pipeline execution completed ■ | 0.084 sec elapsed </code></pre>
+<pre><code>── [2026-04-20 13:52:05]
+Pipeline execution completed ■ | 0.081 sec elapsed </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>✔ 4 successes | ! 0 warnings | ✖ 0 errors | ◼ 4 total</code></pre>
@@ -419,10 +419,10 @@ Pipeline execution completed ■ | 0.084 sec elapsed </code></pre>
 <pre><code># A tibble: 4 × 4
   pipe_name run_id input_run_id lineage
   &lt;chr&gt;     &lt;chr&gt;  &lt;chr&gt;        &lt;chr&gt;  
-1 p1        LgKJej &lt;NA&gt;         p1     
-2 p2        ovJFh1 &lt;NA&gt;         p2     
-3 p3        oPB6t8 LgKJej       p1-&gt;p3 
-4 p3        s8s34A ovJFh1       p2-&gt;p3 </code></pre>
+1 p1        tGivpG &lt;NA&gt;         p1     
+2 p2        NoyIHa &lt;NA&gt;         p2     
+3 p3        inHmqZ tGivpG       p1-&gt;p3 
+4 p3        fYHA1A NoyIHa       p2-&gt;p3 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_artifacts</span>(schedule)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -433,10 +433,10 @@ $p2
 [1] 2
 
 $p3
-$p3$oPB6t8
+$p3$inHmqZ
 [1] 2
 
-$p3$s8s34A
+$p3$fYHA1A
 [1] 4</code></pre>
 </div>
 </div>
@@ -444,7 +444,7 @@ $p3$s8s34A
 <section id="deprecated-functions" class="level2">
 <h2 class="anchored" data-anchor-id="deprecated-functions">Deprecated functions</h2>
 <p>This release marks the deprecation of two lesser-used interactive functions.</p>
-<p><code>suggest_orch_frequency</code> is deprecated with no specific timeline for removal. This function was a half-baked helper for giving a best guest at an ideal orchestrator frequency given all the pipelines in the project. The reason it’s going is because it’s dangerous if used automatically and perpetuates a bad pattern of choosing whatever-the-hell-you-want pipeline frequencies rather than encouraging a bit of careful thought to the best way to orchestrate the pipelines.</p>
+<p><code>suggest_orch_frequency</code> is deprecated with no specific timeline for removal. This function was a half-baked helper for giving a best guess at an ideal orchestrator frequency given all the pipelines in the project. The reason it’s going is because it’s dangerous if used automatically and perpetuates a bad pattern of choosing whatever-the-hell-you-want pipeline frequencies rather than encouraging a bit of careful thought to the best way to orchestrate the pipelines.</p>
 <p><code>show_network</code> is also deprecated and will be removed in a future 1.2.0 version release. This was a thin wrapper around the DiagrammR package to show the graph network implied by a DAG. My issue with it was that it required a dependency on DiagrammR for a trivial visualization capability. Furthermore, in most projects the visualization it produced was pretty hard to look at due to the nature of maestro being mostly for multiple independent pipelines.</p>
 </section>
 <section id="wrap-up" class="level2">
@@ -459,7 +459,7 @@ $p3$s8s34A
 <div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 
 <ol>
-<li id="fn1"><p>This almost shouldn’t be a footnote, but we’re able to run all of our cloud-based production pipelines (around 50 at the time of posting) in maestro for less than $1 a month. Just think about what that would cost if we were locked into Airflow or some proprietary cloud-native SAS. The path is simple: maestro in Docker running serverless.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn1"><p>This almost shouldn’t be a footnote, but we’re able to run all of our cloud-based production pipelines (around 50 at the time of posting) in maestro for less than $1 a month. Just think about what that would cost if we were locked into Airflow or some proprietary cloud-native SaaS. The path is simple: maestro in Docker running serverless.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn2"><p>In short, maestro &lt; 1.1.0 calculated and stored a sequence of future run times for each pipeline. If users naively reused this schedule object then the sequences would never be updated.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main> <!-- /main -->
