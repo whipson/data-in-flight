@@ -1,0 +1,230 @@
+---
+title: "maestro reaches stable release"
+author: "Will Hipson"
+date: "2026-04-21"
+date-modified: last-modified
+categories: [R, data pipelines, orchestration, maestro, packages, release]
+---
+
+![](images/clipboard-2853204278.png){fig-align="center"}
+
+maestro has officially graduated to stable release with version 1.0.0 back in January 2026 and now its latest version 1.1.0. This marks a commitment to maintaining a stable API and increased reliance on using maestro in production. In our environment alone, maestro has orchestrated millions of pipeline executions over the course of a year, effectively making it the heartbeat of our entire data stack.[^1]
+
+[^1]: This almost shouldn't be a footnote, but we're able to run all of our cloud-based production pipelines (around 50 at the time of posting) in maestro for less than \$1 a month. Just think about what that would cost if we were locked into Airflow or some proprietary cloud-native SaaS. The path is simple: maestro in Docker running serverless.
+
+If you haven't heard of maestro, it's a pipeline orchestration package. You can learn more about it [here](https://whipson.github.io/maestro/index.html).
+
+Get it from CRAN:
+
+```{r, eval=FALSE}
+install.packages("maestro")
+```
+
+Here are some of the key new features and changes that came out of versions 1.0.0 and 1.1.0:
+
+## Faster schedule build and run times
+
+A lot of effort went into improving the performance of core functions `build_schedule` and `run_schedule`. Building is especially more efficient, at around 2x-4x quicker for projects with a decent number of pipelines. For example, our heaviest maestro project which boasts over 50 pipelines saw an average build time of 2 secs go down to 0.5 secs. This makes running maestro at tight orchestrator frequencies more feasible.
+
+## Schedules are more portable
+
+One problem with the old way maestro built schedules was that caching and reusing a schedule object (as opposed to rebuilding it every time) eventually led to schedule expiry[^2]. As of maestro 1.1.0, schedules can safely be cached and reused avoiding the need to run `build_schedule` on every orchestrator run. It's as simple as running `saveRDS` on a prebuilt schedule and then using `readRDS` to load it into the production run.
+
+[^2]: In short, maestro \< 1.1.0 calculated and stored a sequence of future run times for each pipeline. If users naively reused this schedule object then the sequences would never be updated.
+
+### Caveats when caching a schedule
+
+It's important to note that caching a schedule won't pick up changes to pipeline configuration or the addition/deletion of pipelines. Therefore, it's recommended to rebuild and cache once on deploy, then use the prebuilt schedule on each execution. A CI/CD pattern is useful to ensure that changes to pipeline configuration trigger the rebuild of a schedule.
+
+Caching a schedule as an .rds instead of rebuilding on every run can shave off a second of runtime in production, which is significant if maestro is used on a tight cadence. For projects running on a lower frequency (e.g., 15 minutes or less often), this probably isn't worth doing.
+
+## New function `get_run_sequence`
+
+It's often useful to know the future times your pipelines are scheduled to run. To this end, we added the `get_run_sequence` function which returns a data.frame of scheduled execution times. This can be helpful for planning and monitoring:
+
+```{r}
+#| eval: false
+#' ./pipelines
+#' @maestroFrequency hourly
+hourly <- function() {
+  
+}
+
+#' @maestroFrequency daily
+#' @maestroStartTime 02:00:00
+daily <- function() {
+  
+}
+
+#' @maestroFrequency 3 hours
+#' @maestroStartTime 01:00:00
+every_3_hours <- function() {
+  
+}
+```
+
+```{r}
+#| echo: false
+dir.create("pipelines")
+writeLines(
+  "
+  #' @maestroFrequency hourly
+  hourly <- function() {
+    
+  }
+  
+  #' @maestroFrequency daily
+  #' @maestroStartTime 02:00:00
+  daily <- function() {
+    
+  }
+  
+  #' @maestroFrequency 3 hours
+  #' @maestroStartTime 01:00:00
+  every_3_hours <- function() {
+    
+  }
+  ",
+  con = "pipelines/my_pipes.R"
+)
+```
+
+```{r}
+library(maestro)
+
+schedule <- build_schedule(quiet = TRUE)
+
+get_run_sequence(schedule) |>
+  head(n = 10)
+```
+
+## More intuitive anchor times for weekly/monthly pipelines
+
+Prior to 1.1.0, pipelines that ran on a frequency lower than daily needed a specific date anchor as the start time. These felt arbitrary and made it difficult to know what the actual anchor point was intended to be.
+
+### Weekday abbreviations
+
+Take a pipeline that is supposed to run every week at 04:00:00 on Monday. Prior to 1.1.0 you would need to choose an arbitrary Monday date as the start time, like this:
+
+```{r}
+#| eval: false
+#' Old pre 1.1.0 method for scheduling a weekly pipeline on a Monday
+#' @maestroFrequency weekly
+#' @maestroStartTime 2026-04-13 04:00:00
+weekly_pipeline <- function() {
+  
+}
+```
+
+Looking at this code, it's not obvious that the pipeline is supposed to run on Mondays. You'd need to look back at the calendar.
+
+Now in 1.1.0, you can specify a weekday for pipelines running on a weekly cadence:
+
+```{r}
+#| eval: false
+#' New, 1.1.0 intuitive way
+#' @maestroFrequency weekly
+#' @maestroStartTime Mon 04:00:00
+weekly_pipeline <- function() {
+  
+}
+```
+
+Now there's no arbitrary start date and the logic is clearer. This works so long as you use the 3-character abbreviation for the weekday. Note that this also applies to pipelines with a biweekly frequency.
+
+### Month dates
+
+Similarly, we can avoid the arbitrariness of a specific date in the case of monthly pipelines by specifying the numeric date like so:
+
+```{r}
+#| eval: false
+#' @maestroFrequency monthly
+#' @maestroStartTime 2 04:00:00
+monthly_pipeline <- function() {
+  
+}
+```
+
+The above pipeline would trigger every 2nd day of the month at 04:00:00.
+
+## Better observability of DAG pipelines that fan-in - overhauling `get_status()`.
+
+In DAG nomenclature, fan-in occurs when multiple different pipelines input into a single pipeline. A good example would be a generic 'send_logs_to_storage' pipeline that is reused by every pipeline in a project as a `maestroOutputs`. Prior to stable release, this operation worked in maestro, but the output of `get_status` would only report on the last invocation even if it was called multiple times.
+
+For this reason, we modified the output of `get_status()` to include one row per unique pipeline invocation in a single orchestrator run. The same logic needed to be applied to `get_artifacts()`. We also gave each invocation a unique `run_id` to better track the distinct execution of a pipeline and which execution inputted into which downstream pipeline.
+
+Take a look at the following trivial fan-in example where both p1 and p2 input into p3:
+
+```{r}
+#| eval: false
+#' ./pipelines
+#' @maestroFrequency hourly
+#' @maestroOutputs p3
+p1 <- function() {
+  1
+}
+
+#' @maestroFrequency hourly
+#' @maestroOutputs p3
+p2 <- function() {
+  2
+}
+
+#' @maestro
+p3 <- function(.input) {
+  .input * 2
+}
+```
+
+```{r}
+#| echo: false
+writeLines(
+  "
+  #' @maestroFrequency hourly
+  #' @maestroOutputs p3
+  p1 <- function() {
+    1
+  }
+  
+  #' @maestroFrequency hourly
+  #' @maestroOutputs p3
+  p2 <- function() {
+    2
+  }
+  
+  #' @maestro
+  p3 <- function(.input) {
+    .input * 2
+  }
+  ",
+  con = "pipelines/my_pipes.R"
+)
+```
+
+```{r}
+schedule <- build_schedule(quiet = TRUE)
+
+output <- run_schedule(
+  schedule,
+  orch_frequency = "1 hour",
+  n_show_next = 0
+)
+
+get_status(schedule)[, c("pipe_name", "run_id", "input_run_id", "lineage")]
+
+get_artifacts(schedule)
+```
+
+## Deprecated functions
+
+This release marks the deprecation of two lesser-used interactive functions.
+
+`suggest_orch_frequency` is deprecated with no specific timeline for removal. This function was a half-baked helper for giving a best guess at an ideal orchestrator frequency given all the pipelines in the project. The reason it's going is because it's dangerous if used automatically and perpetuates a bad pattern of choosing whatever-the-hell-you-want pipeline frequencies rather than encouraging a bit of careful thought to the best way to orchestrate the pipelines.
+
+`show_network` is also deprecated and will be removed in a future 1.2.0 version release. This was a thin wrapper around the DiagrammR package to show the graph network implied by a DAG. My issue with it was that it required a dependency on DiagrammR for a trivial visualization capability. Furthermore, in most projects the visualization it produced was pretty hard to look at due to the nature of maestro being mostly for multiple independent pipelines.
+
+## Wrap up
+
+There are a number of other smaller changes covered in the [release notes](https://whipson.github.io/maestro/news/index.html). If you're curious about maestro and how it can be used in production, check out some of my other posts or consider reviewing the [vignette on deployment](https://whipson.github.io/maestro/articles/maestro-6-deployment.html). I'm also happy to answer questions via [LinkedIn](https://www.linkedin.com/in/will-hipson/) or issues on Github [here](https://github.com/whipson/maestro/issues). As an avid proponent of R in production, my hope is that maestro will help dispel myths around the feasibility of R for production workloads.
+
+As always, happy orchestrating!

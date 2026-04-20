@@ -2,13 +2,16 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.25">
+<meta name="generator" content="quarto-1.9.36">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
 <title>Posts – data-in-flight</title>
 <style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
 div.columns{display: flex; gap: min(4vw, 1.5em);}
@@ -34,15 +37,14 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-listing/quarto-listing.js"></script>
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-845c23b38eaddc0f92fda52bfe77a8c8.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-99258d85ffddbd9841977770f8edb96b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-1b5cbb678aba238cc9ecc8dbef59e0a8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -101,7 +103,7 @@ ul.task-list li input[type="checkbox"] {
   </script>
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -140,8 +142,6 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a href="./index.html" class="navbar-brand navbar-brand-logo">
-    </a>
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">data-in-flight</span>
     </a>
@@ -205,7 +205,7 @@ window.Quarto = {
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         
-    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(11)</span></div><div class="category" data-category="Y2xvdWQ=">cloud <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZGF0YSUyMGNsZWFuaW5n">data cleaning <span class="quarto-category-count">(2)</span></div><div class="category" data-category="ZGF0YSUyMGVuZ2luZWVyaW5n">data engineering <span class="quarto-category-count">(3)</span></div><div class="category" data-category="ZGF0YSUyMHBpcGVsaW5lcw==">data pipelines <span class="quarto-category-count">(8)</span></div><div class="category" data-category="ZGVwbG95bWVudA==">deployment <span class="quarto-category-count">(2)</span></div><div class="category" data-category="aW5nZXN0aW9u">ingestion <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bWFlc3Rybw==">maestro <span class="quarto-category-count">(8)</span></div><div class="category" data-category="bmV3cw==">news <span class="quarto-category-count">(1)</span></div><div class="category" data-category="b3Bpbmlvbg==">opinion <span class="quarto-category-count">(1)</span></div><div class="category" data-category="b3JjaGVzdHJhdGlvbg==">orchestration <span class="quarto-category-count">(8)</span></div><div class="category" data-category="cGFja2FnZXM=">packages <span class="quarto-category-count">(8)</span></div><div class="category" data-category="Ug==">R <span class="quarto-category-count">(9)</span></div><div class="category" data-category="cmVsZWFzZQ==">release <span class="quarto-category-count">(7)</span></div><div class="category" data-category="c2NoZW1hdGlj">schematic <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dHV0b3JpYWw=">tutorial <span class="quarto-category-count">(1)</span></div></div></div>
+    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(13)</span></div><div class="category" data-category="Y2xvdWQ=">cloud <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZGF0YSUyMGNsZWFuaW5n">data cleaning <span class="quarto-category-count">(2)</span></div><div class="category" data-category="ZGF0YSUyMGVuZ2luZWVyaW5n">data engineering <span class="quarto-category-count">(4)</span></div><div class="category" data-category="ZGF0YSUyMHBpcGVsaW5lcw==">data pipelines <span class="quarto-category-count">(10)</span></div><div class="category" data-category="ZGVwbG95bWVudA==">deployment <span class="quarto-category-count">(3)</span></div><div class="category" data-category="aW5nZXN0aW9u">ingestion <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bWFlc3Rybw==">maestro <span class="quarto-category-count">(10)</span></div><div class="category" data-category="bmV3cw==">news <span class="quarto-category-count">(1)</span></div><div class="category" data-category="b3Bpbmlvbg==">opinion <span class="quarto-category-count">(1)</span></div><div class="category" data-category="b3JjaGVzdHJhdGlvbg==">orchestration <span class="quarto-category-count">(10)</span></div><div class="category" data-category="cGFja2FnZXM=">packages <span class="quarto-category-count">(9)</span></div><div class="category" data-category="cG9zaXQlMjBjb25uZWN0">posit connect <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Ug==">R <span class="quarto-category-count">(11)</span></div><div class="category" data-category="cmVsZWFzZQ==">release <span class="quarto-category-count">(8)</span></div><div class="category" data-category="c2NoZW1hdGlj">schematic <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dHV0b3JpYWw=">tutorial <span class="quarto-category-count">(2)</span></div></div></div>
 <!-- main -->
 <main class="content quarto-banner-title-block column-page-left" id="quarto-document-content">
 
@@ -219,7 +219,50 @@ window.Quarto = {
 
 <div class="quarto-listing quarto-listing-container-default" id="listing-listing">
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1762142400000" data-listing-file-modified-sort="1762174676147" data-listing-date-modified-sort="1762174676000" data-listing-reading-time-sort="3" data-listing-word-count-sort="596">
+<div class="quarto-post image-right" data-index="0" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1776654000000" data-listing-file-modified-sort="1776277947065" data-listing-date-modified-sort="1776277947000" data-listing-reading-time-sort="7" data-listing-word-count-sort="1319">
+<div class="thumbnail"><a href="./posts/maestro-1-1-0/maestro-1-1-0-release.html" class="no-external">
+
+<p class="card-img-top"><img loading='lazy' src="posts/maestro-1-1-0/images/clipboard-2853204278.png"  class="thumbnail-image card-img"/></p>
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/maestro-1-1-0/maestro-1-1-0-release.html" class="no-external">maestro reaches stable release</a>
+</h3>
+<div class="listing-subtitle">
+<a href="./posts/maestro-1-1-0/maestro-1-1-0-release.html" class="no-external"></a>
+</div>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">R</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGF0YSUyMHBpcGVsaW5lcw=='); return false;">data pipelines</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('b3JjaGVzdHJhdGlvbg=='); return false;">orchestration</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('bWFlc3Rybw=='); return false;">maestro</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cGFja2FnZXM='); return false;">packages</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmVsZWFzZQ=='); return false;">release</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/maestro-1-1-0/maestro-1-1-0-release.html" class="no-external">
+maestro has officially graduated to stable release with version 1.0.0 back in January 2026 and now its latest version 1.1.0. This marks a commitment to maintaining a stable…<sup></sup>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/maestro-1-1-0/maestro-1-1-0-release.html" class="no-external">
+<div class="listing-date">
+Apr 20, 2026
+</div>
+<div class="listing-author">
+Will Hipson
+</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="1" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1762142400000" data-listing-file-modified-sort="1762174676147" data-listing-date-modified-sort="1762174676000" data-listing-reading-time-sort="3" data-listing-word-count-sort="596">
 <div class="thumbnail"><a href="./posts/maestro-0-7-0/maestro-0-7-0-release.html" class="no-external">
 
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -262,10 +305,10 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="1" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1747278000000" data-listing-file-modified-sort="1747743338128" data-listing-date-modified-sort="1747743338000" data-listing-reading-time-sort="6" data-listing-word-count-sort="1191">
+<div class="quarto-post image-right" data-index="2" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1747278000000" data-listing-file-modified-sort="1776276764291" data-listing-date-modified-sort="1776276764000" data-listing-reading-time-sort="6" data-listing-word-count-sort="1191">
 <div class="thumbnail"><a href="./posts/maestro-0-6-0/maestro-0-6-0-release.html" class="no-external">
 
-<p class="card-img-top"><img src="posts/maestro-0-6-0/images/clipboard-2853204278.png"  class="thumbnail-image card-img"/></p>
+<p class="card-img-top"><img loading='lazy' src="posts/maestro-0-6-0/images/clipboard-2853204278.png"  class="thumbnail-image card-img"/></p>
 
 </a></div>
 <div class="body">
@@ -305,7 +348,7 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="2" data-categories="ZGF0YSUyMGNsZWFuaW5nJTJDUiUyQ3BhY2thZ2VzJTJDcmVsZWFzZSUyQ3NjaGVtYXRpYw==" data-listing-date-sort="1745809200000" data-listing-file-modified-sort="1745840705250" data-listing-date-modified-sort="1745840705000" data-listing-reading-time-sort="5" data-listing-word-count-sort="957">
+<div class="quarto-post image-right" data-index="3" data-categories="ZGF0YSUyMGNsZWFuaW5nJTJDUiUyQ3BhY2thZ2VzJTJDcmVsZWFzZSUyQ3NjaGVtYXRpYw==" data-listing-date-sort="1745809200000" data-listing-file-modified-sort="1745840705250" data-listing-date-modified-sort="1745840705000" data-listing-reading-time-sort="5" data-listing-word-count-sort="957">
 <div class="thumbnail"><a href="./posts/schematic/schematic-release.html" class="no-external">
 
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -346,10 +389,10 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="3" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2Vz" data-listing-date-sort="1740542400000" data-listing-file-modified-sort="1740753323757" data-listing-date-modified-sort="1740753323000" data-listing-reading-time-sort="23" data-listing-word-count-sort="4467">
+<div class="quarto-post image-right" data-index="4" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2Vz" data-listing-date-sort="1740542400000" data-listing-file-modified-sort="1740753323757" data-listing-date-modified-sort="1740753323000" data-listing-reading-time-sort="23" data-listing-word-count-sort="4467">
 <div class="thumbnail"><a href="./posts/you-dont-need-airflow/main.html" class="no-external">
 
-<p class="card-img-top"><img src="posts/you-dont-need-airflow/main_files/figure-html/unnamed-chunk-8-1.png"  class="thumbnail-image card-img"/></p>
+<p class="card-img-top"><img loading='lazy' src="posts/you-dont-need-airflow/main_files/figure-html/unnamed-chunk-8-1.png"  class="thumbnail-image card-img"/></p>
 
 </a></div>
 <div class="body">
@@ -387,7 +430,7 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="4" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1732248000000" data-listing-file-modified-sort="1732299907035" data-listing-date-modified-sort="1732299907000" data-listing-reading-time-sort="4" data-listing-word-count-sort="669">
+<div class="quarto-post image-right" data-index="5" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1732248000000" data-listing-file-modified-sort="1732299907035" data-listing-date-modified-sort="1732299907000" data-listing-reading-time-sort="4" data-listing-word-count-sort="669">
 <div class="thumbnail"><a href="./posts/maestro-dags/main.html" class="no-external">
 
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -430,10 +473,57 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="5" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1727060400000" data-listing-file-modified-sort="1727112689883" data-listing-date-modified-sort="1727112689000" data-listing-reading-time-sort="2" data-listing-word-count-sort="384">
+<div class="quarto-post image-right" data-index="6" data-categories="UiUyQ2RhdGElMjBlbmdpbmVlcmluZyUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ2RlcGxveW1lbnQlMkNwb3NpdCUyMGNvbm5lY3QlMkN0dXRvcmlhbA==" data-listing-date-sort="1727838000000" data-listing-file-modified-sort="1727793700399" data-listing-date-modified-sort="1727793700000" data-listing-reading-time-sort="4" data-listing-word-count-sort="607">
+<div class="thumbnail"><a href="./posts/maestro-posit-connect/main.html" class="no-external">
+
+<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/maestro-posit-connect/main.html" class="no-external">Many Data Pipelines on Posit Connect with Maestro</a>
+</h3>
+<div class="listing-subtitle">
+<a href="./posts/maestro-posit-connect/main.html" class="no-external">How to deploy and monitor many data pipelines with maestro and Posit Connect</a>
+</div>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">R</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGF0YSUyMGVuZ2luZWVyaW5n'); return false;">data engineering</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGF0YSUyMHBpcGVsaW5lcw=='); return false;">data pipelines</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('b3JjaGVzdHJhdGlvbg=='); return false;">orchestration</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('bWFlc3Rybw=='); return false;">maestro</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGVwbG95bWVudA=='); return false;">deployment</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cG9zaXQlMjBjb25uZWN0'); return false;">posit connect</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dHV0b3JpYWw='); return false;">tutorial</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/maestro-posit-connect/main.html" class="no-external">
+
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/maestro-posit-connect/main.html" class="no-external">
+<div class="listing-date">
+Oct 2, 2024
+</div>
+<div class="listing-author">
+Will Hipson
+</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="7" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1727060400000" data-listing-file-modified-sort="1727112689883" data-listing-date-modified-sort="1727112689000" data-listing-reading-time-sort="2" data-listing-word-count-sort="384">
 <div class="thumbnail"><a href="./posts/maestro-0-3-0/maestro-0-3-0.html" class="no-external">
 
-<p class="card-img-top"><img src="posts/maestro-0-3-0/images/logo.png"  class="thumbnail-image card-img"/></p>
+<p class="card-img-top"><img loading='lazy' src="posts/maestro-0-3-0/images/logo.png"  class="thumbnail-image card-img"/></p>
 
 </a></div>
 <div class="body">
@@ -473,10 +563,10 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="6" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1724727600000" data-listing-file-modified-sort="1727099082390" data-listing-date-modified-sort="1727099082000" data-listing-reading-time-sort="4" data-listing-word-count-sort="628">
+<div class="quarto-post image-right" data-index="8" data-categories="UiUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDcmVsZWFzZQ==" data-listing-date-sort="1724727600000" data-listing-file-modified-sort="1727099082390" data-listing-date-modified-sort="1727099082000" data-listing-reading-time-sort="4" data-listing-word-count-sort="628">
 <div class="thumbnail"><a href="./posts/maestro-0-2-0/maestro-0-2-0.html" class="no-external">
 
-<p class="card-img-top"><img src="posts/maestro-0-2-0/images/logo.png"  class="thumbnail-image card-img"/></p>
+<p class="card-img-top"><img loading='lazy' src="posts/maestro-0-2-0/images/logo.png"  class="thumbnail-image card-img"/></p>
 
 </a></div>
 <div class="body">
@@ -516,10 +606,10 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="7" data-categories="ZGF0YSUyMGNsZWFuaW5nJTJDZGF0YSUyMGVuZ2luZWVyaW5nJTJDaW5nZXN0aW9uJTJDb3Bpbmlvbg==" data-listing-date-sort="1721271600000" data-listing-file-modified-sort="1721317858596" data-listing-date-modified-sort="1721317858000" data-listing-reading-time-sort="7" data-listing-word-count-sort="1280">
+<div class="quarto-post image-right" data-index="9" data-categories="ZGF0YSUyMGNsZWFuaW5nJTJDZGF0YSUyMGVuZ2luZWVyaW5nJTJDaW5nZXN0aW9uJTJDb3Bpbmlvbg==" data-listing-date-sort="1721271600000" data-listing-file-modified-sort="1721317858596" data-listing-date-modified-sort="1721317858000" data-listing-reading-time-sort="7" data-listing-word-count-sort="1280">
 <div class="thumbnail"><a href="./posts/data-contamination/main.html" class="no-external">
 
-<p class="card-img-top"><img src="posts/data-contamination/images/data_decontamination.drawio.png"  class="thumbnail-image card-img"/></p>
+<p class="card-img-top"><img loading='lazy' src="posts/data-contamination/images/data_decontamination.drawio.png"  class="thumbnail-image card-img"/></p>
 
 </a></div>
 <div class="body">
@@ -555,10 +645,10 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="8" data-categories="UiUyQ2RhdGElMjBlbmdpbmVlcmluZyUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ2RlcGxveW1lbnQlMkNjbG91ZCUyQ3R1dG9yaWFs" data-listing-date-sort="1719198000000" data-listing-file-modified-sort="1721308218643" data-listing-date-modified-sort="1721308218000" data-listing-reading-time-sort="6" data-listing-word-count-sort="1197">
+<div class="quarto-post image-right" data-index="10" data-categories="UiUyQ2RhdGElMjBlbmdpbmVlcmluZyUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ2RlcGxveW1lbnQlMkNjbG91ZCUyQ3R1dG9yaWFs" data-listing-date-sort="1719198000000" data-listing-file-modified-sort="1721308218643" data-listing-date-modified-sort="1721308218000" data-listing-reading-time-sort="6" data-listing-word-count-sort="1197">
 <div class="thumbnail"><a href="./posts/maestro-gcp-deployment/maestro-gcp-deployment.html" class="no-external">
 
-<p class="card-img-top"><img src="posts/maestro-gcp-deployment/images/DALL·E 2024-06-24 13.13.56 - A very simple blueprint-style header image with a hand-drawn feel. Include only a single detailed sketch of a light bulb. The background should be a d.webp" alt="Blueprint style image showing lightbulbs"  class="thumbnail-image card-img"/></p>
+<p class="card-img-top"><img loading='lazy' src="posts/maestro-gcp-deployment/images/DALL·E 2024-06-24 13.13.56 - A very simple blueprint-style header image with a hand-drawn feel. Include only a single detailed sketch of a light bulb. The background should be a d.webp" alt="Blueprint style image showing lightbulbs"  class="thumbnail-image card-img"/></p>
 
 </a></div>
 <div class="body">
@@ -602,10 +692,10 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="9" data-categories="UiUyQ2RhdGElMjBlbmdpbmVlcmluZyUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDZGVwbG95bWVudCUyQ3JlbGVhc2U=" data-listing-date-sort="1718766000000" data-listing-file-modified-sort="1727098254040" data-listing-date-modified-sort="1727098254000" data-listing-reading-time-sort="8" data-listing-word-count-sort="1424">
+<div class="quarto-post image-right" data-index="11" data-categories="UiUyQ2RhdGElMjBlbmdpbmVlcmluZyUyQ2RhdGElMjBwaXBlbGluZXMlMkNvcmNoZXN0cmF0aW9uJTJDbWFlc3RybyUyQ3BhY2thZ2VzJTJDZGVwbG95bWVudCUyQ3JlbGVhc2U=" data-listing-date-sort="1718766000000" data-listing-file-modified-sort="1727098254040" data-listing-date-modified-sort="1727098254000" data-listing-reading-time-sort="8" data-listing-word-count-sort="1424">
 <div class="thumbnail"><a href="./posts/hello-maestro/hello-maestro.html" class="no-external">
 
-<p class="card-img-top"><img src="posts/hello-maestro/images/logo.png"  class="thumbnail-image card-img"/></p>
+<p class="card-img-top"><img loading='lazy' src="posts/hello-maestro/images/logo.png"  class="thumbnail-image card-img"/></p>
 
 </a></div>
 <div class="body">
@@ -649,10 +739,10 @@ Will Hipson
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="10" data-categories="bmV3cw==" data-listing-date-sort="1716519600000" data-listing-file-modified-sort="1720704751768" data-listing-date-modified-sort="1720704751000" data-listing-reading-time-sort="1" data-listing-word-count-sort="130">
+<div class="quarto-post image-right" data-index="12" data-categories="bmV3cw==" data-listing-date-sort="1716519600000" data-listing-file-modified-sort="1720704751768" data-listing-date-modified-sort="1720704751000" data-listing-reading-time-sort="1" data-listing-word-count-sort="130">
 <div class="thumbnail"><a href="./posts/prepare-for-takeoff/index.html" class="no-external">
 
-<p class="card-img-top"><img src="posts/prepare-for-takeoff/images/DALL·E 2024-06-24 13.19.34 - A very simple blueprint-style header image with a hand-drawn feel, focusing on an airplane. Include only a single detailed sketch of an airplane. The .webp" alt="Blueprint with an airplane"  class="thumbnail-image card-img"/></p>
+<p class="card-img-top"><img loading='lazy' src="posts/prepare-for-takeoff/images/DALL·E 2024-06-24 13.19.34 - A very simple blueprint-style header image with a hand-drawn feel, focusing on an airplane. Include only a single detailed sketch of an airplane. The .webp" alt="Blueprint with an airplane"  class="thumbnail-image card-img"/></p>
 
 </a></div>
 <div class="body">

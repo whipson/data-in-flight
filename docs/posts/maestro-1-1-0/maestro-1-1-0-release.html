@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Will Hipson">
-<meta name="dcterms.date" content="2025-05-15">
+<meta name="dcterms.date" content="2026-04-20">
 
-<title>maestro 0.6.0 – data-in-flight</title>
+<title>maestro reaches stable release – data-in-flight</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -164,8 +164,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">maestro 0.6.0</h1>
-            <p class="subtitle lead">New capabilities for flagging pipelines, setting priorities, and optimizing your orchestration</p>
+      <h1 class="title">maestro reaches stable release</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">R</div>
                 <div class="quarto-category">data pipelines</div>
@@ -190,7 +189,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">May 15, 2025</p>
+        <p class="date">April 20, 2026</p>
       </div>
     </div>
     
@@ -220,181 +219,238 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><img src="images/clipboard-2853204278.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></p>
 </figure>
 </div>
-<p>There are a bunch of new features to share as part of the 0.6.0 release of <code>maestro</code>:</p>
-<ol type="1">
-<li><code>maestroFlags</code> tag and accompanying <code>get_flags()</code> function for tagging pipelines.</li>
-<li><code>maestroPriority</code> tag for determining the order in which simultaneously scheduled pipelines are executed.</li>
-<li>New <code>get_slot_usage()</code> function to help identify busy (or quiet) time slots in the schedule.</li>
-<li><code>maestroStartTime</code> tag is more flexible to allow for HH:MM:SS formats.</li>
-</ol>
-<p>If you haven’t heard of maestro, it’s a package that helps you schedule your R scripts all in a single project using tags. You can learn more about it <a href="../../posts/hello-maestro/hello-maestro.html">here</a>.</p>
+<p>maestro has officially graduated to stable release with version 1.0.0 back in January 2026 and now its latest version 1.1.0. This marks a commitment to maintaining a stable API and increased reliance on using maestro in production. In our environment alone, maestro has orchestrated millions of pipeline executions over the course of a year, effectively making it the heartbeat of our entire data stack.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>If you haven’t heard of maestro, it’s a pipeline orchestration package. You can learn more about it <a href="https://whipson.github.io/maestro/index.html">here</a>.</p>
 <p>Get it from CRAN:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"maestro"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<section id="flags" class="level2">
-<h2 class="anchored" data-anchor-id="flags">Flags</h2>
-<p>A flag is an arbitrary string that could be used to classify or label a pipeline.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> You can now add any number of flags to a pipeline using the <code>maestroFlags</code> tag like so:</p>
+<p>Here are some of the key new features and changes that came out of versions 1.0.0 and 1.1.0:</p>
+<section id="faster-schedule-build-and-run-times" class="level2">
+<h2 class="anchored" data-anchor-id="faster-schedule-build-and-run-times">Faster schedule build and run times</h2>
+<p>A lot of effort went into improving the performance of core functions <code>build_schedule</code> and <code>run_schedule</code>. Building is especially more efficient, at around 2x-4x quicker for projects with a decent number of pipelines. For example, our heaviest maestro project which boasts over 50 pipelines saw an average build time of 2 secs go down to 0.5 secs. This makes running maestro at tight orchestrator frequencies more feasible.</p>
+</section>
+<section id="schedules-are-more-portable" class="level2">
+<h2 class="anchored" data-anchor-id="schedules-are-more-portable">Schedules are more portable</h2>
+<p>One problem with the old way maestro built schedules was that caching and reusing a schedule object (as opposed to rebuilding it every time) eventually lead to schedule expiry<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. As of maestro 1.1.0, schedules can safely be cached and reused avoiding the need to run <code>build_schedule</code> on every orchestrator run. It’s as simple as running <code>saveRDS</code> on a prebuilt schedule and then using <code>readRDS</code> to load it into the production run.</p>
+<section id="caveats-when-caching-a-schedule" class="level3">
+<h3 class="anchored" data-anchor-id="caveats-when-caching-a-schedule">Caveats when caching a schedule</h3>
+<p>It’s important to note that caching a schedule won’t pick up changes to pipeline configuration or the addition/deletion of pipelines. Therefore, it’s recommended to rebuild and cache once on deploy, then use the prebuilt schedule on each execution. A CI/CD pattern is useful to ensure that changes to pipeline configuration trigger the rebuild of a schedule.</p>
+<p>Caching a schedule as an .rds instead of rebuilding on every run can shave off a second of runtime in production, which is significant if maestro is used on a tight cadence. For projects running on a lower frequency (e.g., 15 minutes or less often), this probably isn’t worth doing.</p>
+</section>
+</section>
+<section id="new-function-get_run_sequence" class="level2">
+<h2 class="anchored" data-anchor-id="new-function-get_run_sequence">New function <code>get_run_sequence</code></h2>
+<p>It’s often useful to know the future times your pipelines are scheduled to run. To this end, we added the <code>get_run_sequence</code> function which returns a data.frame of scheduled execution times. This can be helpful for planning and monitoring:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ./pipelines</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># You could use tags to classify a pipeline as critical</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 1 day</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2024-06-03</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFlags critical </span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>super_important <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Obv. does something important</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co"># You can have as many flags as you want separated by spaces</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency hourly</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2025-04-05 12:30:00</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFlags aviation api-access</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>airlines <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Accesses airlines from an API or whatever</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' ./pipelines</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency hourly</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>hourly <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency daily</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 02:00:00</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 3 hours</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 01:00:00</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>every_3_hours <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  </span>
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Once you’ve flagged some pipelines, you can access the flags for all pipelines in the schedule as a data.frame using <code>get_flags()</code>.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(maestro)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>schedule <span class="ot">&lt;-</span> <span class="fu">build_schedule</span>(<span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">get_flags</span>(schedule)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in dir.create("pipelines"): 'pipelines' already exists</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(maestro)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>schedule <span class="ot">&lt;-</span> <span class="fu">build_schedule</span>(<span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">get_run_sequence</span>(schedule) <span class="sc">|&gt;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="at">n =</span> <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 3 × 2
-  pipe_name       flag      
-  &lt;chr&gt;           &lt;chr&gt;     
-1 super_important critical  
-2 airlines        aviation  
-3 airlines        api-access</code></pre>
+<pre><code># A tibble: 10 × 3
+   pipe_name     scheduled_time      is_primary
+   &lt;chr&gt;         &lt;dttm&gt;              &lt;lgl&gt;     
+ 1 hourly        2026-04-15 00:00:00 TRUE      
+ 2 hourly        2026-04-15 01:00:00 TRUE      
+ 3 every_3_hours 2026-04-15 01:00:00 TRUE      
+ 4 hourly        2026-04-15 02:00:00 TRUE      
+ 5 daily         2026-04-15 02:00:00 TRUE      
+ 6 hourly        2026-04-15 03:00:00 TRUE      
+ 7 hourly        2026-04-15 04:00:00 TRUE      
+ 8 every_3_hours 2026-04-15 04:00:00 TRUE      
+ 9 hourly        2026-04-15 05:00:00 TRUE      
+10 hourly        2026-04-15 06:00:00 TRUE      </code></pre>
 </div>
 </div>
-<p>This table could be used, for example, to send statuses reports to particular groups based on the tags, or trigger warnings/errors based on the criticality of the pipelines that failed. In these cases, it’s helpful to join the table with either <code>get_status()</code> or <code>get_schedule()</code>.</p>
 </section>
-<section id="priority" class="level2">
-<h2 class="anchored" data-anchor-id="priority">Priority</h2>
-<p>Sometimes you have multiple pipelines that run at the same time - say, if you have two hourly pipelines running on the same cadence. You may want to control the order in which these pipelines are executed<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. The new <code>maestroPriority</code> tag allows you to configure the priority in which pipelines are executed:</p>
+<section id="more-intuitive-anchor-times-for-weeklymonthly-pipelines" class="level2">
+<h2 class="anchored" data-anchor-id="more-intuitive-anchor-times-for-weeklymonthly-pipelines">More intuitive anchor times for weekly/monthly pipelines</h2>
+<p>Prior to 1.1.0, pipelines that ran on a frequency lower than daily needed a specific date anchor as the start time. These felt arbitrary and made it difficult to know what the actual anchor point was intended to be.</p>
+<section id="weekday-abbreviations" class="level3">
+<h3 class="anchored" data-anchor-id="weekday-abbreviations">Weekday abbreviations</h3>
+<p>Take a pipeline that is supposed to run every week at 04:00:00 on Monday. Prior to 1.1.0 you would need to choose an arbitrary Monday date as the start time, like this:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 1 hour</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 10:00:00</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>im_less_important <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># some less important stuff</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 1 hour</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 10:00:00</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroPriority 1</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>i_go_first <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># this needs to happen first</span></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>These pipelines run every hour on the 00 minute. The second pipeline has <code>maestroPriority 1</code>, indicating that it goes first when the orchestrator kicks off the pipelines. Pipelines without a priority always go last and pipelines with the same priority level use default ordering (alphabetical by script path name and then line number) within their own priority level.</p>
-</section>
-<section id="slot-usage" class="level2">
-<h2 class="anchored" data-anchor-id="slot-usage">Slot Usage</h2>
-<p>As a maestro project grows it can become increasingly difficult to know when is the best time to schedule a pipeline. You typically want to avoid scheduling a bunch of pipelines at the same time (unless they <em>need</em> to be executed together or at that particular time), and you don’t want a ton of empty time slots (i.e., times where the orchestrator kicks off no pipelines).</p>
-<p>Behold, the <code>get_slot_usage()</code> function!</p>
-<p>This function looks ahead to all scheduled runs of pipelines in the project and returns a data.frame indicating the pipelines that are scheduled to run on each time slot. It’s easier to understand how this works in practice.</p>
-<p>Let’s create a bunch of pipelines first:</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' ./pipelines</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency hourly</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 14:00:00</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>hourly <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' Old pre 1.1.0 method for scheduling a weekly pipeline on a Monday</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency weekly</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2026-04-13 04:00:00</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>weekly_pipeline <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency daily</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 14:00:00</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency 3 hours</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 00:00:00</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>every_3_hours <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency weekly</span></span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2025-05-15 04:00:00</span></span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>weekly <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency daily</span></span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroDays 4 9 16 20</span></span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>some_days <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>In this example we’re considering running the orchestrator every 1 hour and we want to see for each hour time slot what pipelines are scheduled to run:</p>
+<p>Looking at this code, it’s not obvious that the pipeline is supposed to run on Mondays. You’d need to look back at the calendar.</p>
+<p>Now in 1.1.0, you can specify a weekday for pipelines running on a weekly cadence:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>schedule <span class="ot">&lt;-</span> <span class="fu">build_schedule</span>(<span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">get_slot_usage</span>(</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  schedule,</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">orch_frequency =</span> <span class="st">"1 hour"</span>,</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">slot_interval =</span> <span class="st">"hour"</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 24 × 3
-   slot  n_runs pipe_names                      
-   &lt;chr&gt;  &lt;int&gt; &lt;chr&gt;                           
- 1 00:00      3 hourly, every_3_hours, some_days
- 2 01:00      1 hourly                          
- 3 02:00      1 hourly                          
- 4 03:00      2 hourly, every_3_hours           
- 5 04:00      2 hourly, weekly                  
- 6 05:00      1 hourly                          
- 7 06:00      2 hourly, every_3_hours           
- 8 07:00      1 hourly                          
- 9 08:00      1 hourly                          
-10 09:00      2 hourly, every_3_hours           
-# ℹ 14 more rows</code></pre>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' New, 1.1.0 intuitive way</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency weekly</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime Mon 04:00:00</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>weekly_pipeline <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-</div>
-<p>We can see that things are fairly evenly distributed aside from the hour 00 which has 3 pipelines scheduled. There are also many times where only 1 pipeline runs, so if we have a pipeline that runs daily we’d want to schedule it at a less busy time.</p>
-<p>We can change the <code>slot_interval</code> argument to any other valid unit of time to get a different picture.</p>
+<p>Now there’s no arbitrary start date and the logic is clearer. This works so long as you use the 3-character abbreviation for the weekday. Note that this also applies to pipelines with a biweekly frequency.</p>
+</section>
+<section id="month-dates" class="level3">
+<h3 class="anchored" data-anchor-id="month-dates">Month dates</h3>
+<p>Similarly, we can avoid the arbitrariness of a specific date in the case of monthly pipelines by specifying the numeric date like so:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_slot_usage</span>(</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  schedule,</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">orch_frequency =</span> <span class="st">"1 hour"</span>,</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">slot_interval =</span> <span class="st">"day"</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency monthly</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroStartTime 2 04:00:00</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>monthly_pipeline <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The above pipeline would trigger every 2nd day of the month at 04:00:00.</p>
+</section>
+</section>
+<section id="better-observability-of-dag-pipelines-that-fan-in---rehauling-get_status." class="level2">
+<h2 class="anchored" data-anchor-id="better-observability-of-dag-pipelines-that-fan-in---rehauling-get_status.">Better observability of DAG pipelines that fan-in - rehauling <code>get_status()</code>.</h2>
+<p>In DAG nomenclature, fan-in occurs when multiple different pipelines input into a single pipeline. A good example would be a generic ‘send_logs_to_storage’ pipeline that is reused by every pipeline in a project as a <code>maestroOutputs</code>. Prior to stable release, this operation worked in maestro, but the output of <code>get_status</code> would only report on the last invocation even if it was called multiple times.</p>
+<p>For this reason, we modified the output of <code>get_status()</code> to include one row per unique pipeline invocation in a single orchestrator run. The same logic needed to be applied to <code>get_artifacts()</code>. We also gave each invocation a unique <code>run_id</code> to better track the distinct execution of a pipeline and which execution inputted into which downstream pipeline.</p>
+<p>Take a look at the following trivial fan-in example where both p1 and p2 input into p3:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">#' ./pipelines</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency hourly</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroOutputs p3</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroFrequency hourly</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestroOutputs p3</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="dv">2</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co">#' @maestro</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="cf">function</span>(.input) {</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  .input <span class="sc">*</span> <span class="dv">2</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>schedule <span class="ot">&lt;-</span> <span class="fu">build_schedule</span>(<span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>output <span class="ot">&lt;-</span> <span class="fu">run_schedule</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  schedule,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">orch_frequency =</span> <span class="st">"1 hour"</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_show_next =</span> <span class="dv">0</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── [2026-04-15 15:32:30]
+Running pipelines ▶ </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ p1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ p1 [11ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ   |-p3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔   |-p3 [18ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ p2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ p2 [4ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ   |-p3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔   |-p3 [9ms]</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── [2026-04-15 15:32:31]
+Pipeline execution completed ■ | 0.084 sec elapsed </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ 4 successes | ! 0 warnings | ✖ 0 errors | ◼ 4 total</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_status</span>(schedule)[, <span class="fu">c</span>(<span class="st">"pipe_name"</span>, <span class="st">"run_id"</span>, <span class="st">"input_run_id"</span>, <span class="st">"lineage"</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 31 × 3
-   slot  n_runs pipe_names                                     
-   &lt;chr&gt;  &lt;int&gt; &lt;chr&gt;                                          
- 1 01         4 hourly, daily, every_3_hours, weekly           
- 2 02         4 hourly, daily, every_3_hours, weekly           
- 3 03         4 hourly, daily, every_3_hours, weekly           
- 4 04         5 hourly, daily, every_3_hours, weekly, some_days
- 5 05         4 hourly, daily, every_3_hours, weekly           
- 6 06         4 hourly, daily, every_3_hours, weekly           
- 7 07         4 hourly, daily, every_3_hours, weekly           
- 8 08         4 hourly, daily, every_3_hours, weekly           
- 9 09         5 hourly, daily, every_3_hours, weekly, some_days
-10 10         4 hourly, daily, every_3_hours, weekly           
-# ℹ 21 more rows</code></pre>
+<pre><code># A tibble: 4 × 4
+  pipe_name run_id input_run_id lineage
+  &lt;chr&gt;     &lt;chr&gt;  &lt;chr&gt;        &lt;chr&gt;  
+1 p1        LgKJej &lt;NA&gt;         p1     
+2 p2        ovJFh1 &lt;NA&gt;         p2     
+3 p3        oPB6t8 LgKJej       p1-&gt;p3 
+4 p3        s8s34A ovJFh1       p2-&gt;p3 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_artifacts</span>(schedule)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$p1
+[1] 1
+
+$p2
+[1] 2
+
+$p3
+$p3$oPB6t8
+[1] 2
+
+$p3$s8s34A
+[1] 4</code></pre>
 </div>
 </div>
-<p>A few things to consider when using <code>get_slot_usage()</code>:</p>
-<ol type="1">
-<li>It looks at all future instances of when a pipeline will run not just the next unit of time. In the last example, a weekly pipeline appears to run every day but it’s just because all those days on any given month and year will involve running that pipeline.</li>
-<li>Usually you should keep <code>orch_frequency</code> the same as it is in your use of <code>run_schedule()</code>, but <code>slot_interval</code> could depend on what frequency a new pipeline is. In general, you should use one more frequency unit of time than your proposed pipeline. For example, if you’re planning a daily pipeline, use <code>slot_interval = "hour"</code> to identify what hour it should on.</li>
-<li>This function is meant to be used interactively when you’re developing a <code>maestro</code> project. It doesn’t serve much value running in production.</li>
-</ol>
 </section>
-<section id="flexible-start-time" class="level2">
-<h2 class="anchored" data-anchor-id="flexible-start-time">Flexible Start Time</h2>
-<p>A minor improvement was made to the <code>maestroStartTime</code> tag to allow the use of HH:MM:SS formatting for timestamps. This is particularly useful if you have a pipeline that runs hourly or more frequent because the choice of start date was arbitrary. It’ll assume that the pipeline start date is the current date that the schedule was built.</p>
+<section id="deprecated-functions" class="level2">
+<h2 class="anchored" data-anchor-id="deprecated-functions">Deprecated functions</h2>
+<p>This release marks the deprecation of two lesser-used interactive functions.</p>
+<p><code>suggest_orch_frequency</code> is deprecated with no specific timeline for removal. This function was a half-baked helper for giving a best guest at an ideal orchestrator frequency given all the pipelines in the project. The reason it’s going is because it’s dangerous if used automatically and perpetuates a bad pattern of choosing whatever-the-hell-you-want pipeline frequencies rather than encouraging a bit of careful thought to the best way to orchestrate the pipelines.</p>
+<p><code>show_network</code> is also deprecated and will be removed in a future 1.2.0 version release. This was a thin wrapper around the DiagrammR package to show the graph network implied by a DAG. My issue with it was that it required a dependency on DiagrammR for a trivial visualization capability. Furthermore, in most projects the visualization it produced was pretty hard to look at due to the nature of maestro being mostly for multiple independent pipelines.</p>
 </section>
-<section id="conclusion" class="level2">
-<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
-<p>Check out the <a href="https://whipson.github.io/maestro/news/index.html">release notes</a> for more details on what’s new in version 0.6.0. If you find any bugs or want to suggest new features and improvements, please add them <a href="https://github.com/whipson/maestro/issues">here</a> or reach out to me on <a href="https://www.linkedin.com/in/will-hipson/">LinkedIn</a>.</p>
-<p>Happy orchestrating!</p>
+<section id="wrap-up" class="level2">
+<h2 class="anchored" data-anchor-id="wrap-up">Wrap up</h2>
+<p>There are a number of other smaller changes covered in the <a href="https://whipson.github.io/maestro/news/index.html">release notes</a>. If you’re curious about maestro and how it can be used in production, check out some of my other posts or consider reviewing the <a href="https://whipson.github.io/maestro/articles/maestro-6-deployment.html">vignette on deployment</a>. I’m also happy to answer questions via <a href="https://www.linkedin.com/in/will-hipson/">LinkedIn</a> or issues on Github <a href="https://github.com/whipson/maestro/issues">here</a>. As an avid proponent of R in production, my hope is that maestro will help dispel myths around the feasibility of R for production workloads.</p>
+<p>As always, happy orchestrating!</p>
 
 
 </section>
@@ -403,8 +459,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 
 <ol>
-<li id="fn1"><p>Perhaps a more appropriate name for this concept is <strong>tag</strong>. However, it would be confusing to have a maestro tag that is itself called maestroTags.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>This is not the same as having a DAG pipeline where pipelines are chained together.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn1"><p>This almost shouldn’t be a footnote, but we’re able to run all of our cloud-based production pipelines (around 50 at the time of posting) in maestro for less than $1 a month. Just think about what that would cost if we were locked into Airflow or some proprietary cloud-native SAS. The path is simple: maestro in Docker running serverless.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>In short, maestro &lt; 1.1.0 calculated and stored a sequence of future run times for each pipeline. If users naively reused this schedule object then the sequences would never be updated.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

@@ -2,11 +2,13 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/maestro-1-1-0/maestro-1-1-0-release.html",
       "/posts/maestro-0-7-0/maestro-0-7-0-release.html",
       "/posts/maestro-0-6-0/maestro-0-6-0-release.html",
       "/posts/schematic/schematic-release.html",
       "/posts/you-dont-need-airflow/main.html",
       "/posts/maestro-dags/main.html",
+      "/posts/maestro-posit-connect/main.html",
       "/posts/maestro-0-3-0/maestro-0-3-0.html",
       "/posts/maestro-0-2-0/maestro-0-2-0.html",
       "/posts/data-contamination/main.html",
