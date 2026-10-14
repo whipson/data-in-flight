@@ -10,7 +10,416 @@
 <atom:link href="https://whipson.github.io/data-in-flight/index.xml" rel="self" type="application/rss+xml"/>
 <description>scrappy data engineering</description>
 <generator>quarto-1.9.36</generator>
-<lastBuildDate>Tue, 21 Apr 2026 03:00:00 GMT</lastBuildDate>
+<lastBuildDate>Thu, 15 Oct 2026 03:00:00 GMT</lastBuildDate>
+<item>
+  <title>maestro 1.4.0 adds custom pipeline metrics</title>
+  <dc:creator>Will Hipson</dc:creator>
+  <link>https://whipson.github.io/data-in-flight/posts/maestro-1-4-0/maestro-1-4-0-release.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://whipson.github.io/data-in-flight/posts/maestro-1-4-0/images/clipboard-2853204278.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></p>
+</figure>
+</div>
+<p>The 1.4.0 release of maestro is out, and with it comes the ability to record custom metrics from your pipelines. Execution time and success/failure were already tracked, but there was no good way to answer questions like “how many rows did this pipeline process?” or “how many API calls did it take?” Now there is.</p>
+<p>If you haven’t heard of maestro, it’s a pipeline orchestration package. You can learn more about it <a href="https://whipson.github.io/maestro/index.html">here</a>.</p>
+<p>Get it from CRAN:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">install.packages</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"maestro"</span>)</span></code></pre></div></div>
+</div>
+<section id="recording-metrics-with-update_metric" class="level2">
+<h2 class="anchored" data-anchor-id="recording-metrics-with-update_metric">Recording metrics with <code>update_metric()</code></h2>
+<p>A metric is any value that can be represented as a single number: rows processed, bytes read, API calls made, attempts on a task. To record one, call <code>update_metric()</code> from inside a pipeline with the name of the metric and its value. maestro automatically attributes the metric to the pipeline (and run) that is currently executing.</p>
+<p>An important design point is that metrics are recorded on the side. They are not part of a pipeline’s return value, so they never get passed downstream in a <a href="https://whipson.github.io/maestro/articles/maestro-4-directed-acyclic-graphs.html">DAG</a>.</p>
+<p>Here’s a two-step DAG that extracts some flight data and loads it, recording a few metrics along the way:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' ./pipelines/metric_example.R</span></span>
+<span id="cb2-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 hour</span></span>
+<span id="cb2-3">extract_flights <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-4">  </span>
+<span id="cb2-5">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Pretends to fetch data from an API</span></span>
+<span id="cb2-6">  df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.frame</span>(</span>
+<span id="cb2-7">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">flight_id =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>,</span>
+<span id="cb2-8">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">airline_code =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"UA"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AC"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AC"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AA"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"DE"</span>),</span>
+<span id="cb2-9">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">departure_time =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.POSIXct</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2026-10-14 12:00:00"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">450</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">750</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1450</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1750</span>)</span>
+<span id="cb2-10">  )</span>
+<span id="cb2-11">  </span>
+<span id="cb2-12">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">update_metric</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rows_read"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(df))</span>
+<span id="cb2-13">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">update_metric</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bytes_read"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.numeric</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">object.size</span>(df)))</span>
+<span id="cb2-14">  </span>
+<span id="cb2-15">  df</span>
+<span id="cb2-16">}</span>
+<span id="cb2-17"></span>
+<span id="cb2-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroInputs extract_flights</span></span>
+<span id="cb2-19">load_flights <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(.input) {</span>
+<span id="cb2-20">  </span>
+<span id="cb2-21">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">write.csv</span>(.input, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tempfile</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fileext =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">".csv"</span>))</span>
+<span id="cb2-22">  </span>
+<span id="cb2-23">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">update_metric</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rows_written"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(.input))</span>
+<span id="cb2-24">}</span></code></pre></div></div>
+</div>
+</section>
+<section id="retrieving-metrics-with-get_metrics" class="level2">
+<h2 class="anchored" data-anchor-id="retrieving-metrics-with-get_metrics">Retrieving metrics with <code>get_metrics()</code></h2>
+<p>After running the schedule, <code>get_metrics()</code> returns a long data.frame of every metric recorded. Each row gives the pipeline it came from (<code>pipe_name</code>), the run it was recorded in (<code>run_id</code>), the <code>metric</code> name, and its numeric <code>value</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(maestro)</span>
+<span id="cb3-2"></span>
+<span id="cb3-3">schedule <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">build_schedule</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb3-4"></span>
+<span id="cb3-5">status <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_schedule</span>(</span>
+<span id="cb3-6">  schedule,</span>
+<span id="cb3-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"1 hour"</span>,</span>
+<span id="cb3-8">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb3-9">)</span>
+<span id="cb3-10"></span>
+<span id="cb3-11"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_metrics</span>(schedule)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 4
+  pipe_name       run_id metric       value
+  &lt;chr&gt;           &lt;chr&gt;  &lt;chr&gt;        &lt;dbl&gt;
+1 extract_flights vPnJoC rows_read        5
+2 extract_flights vPnJoC bytes_read    1648
+3 load_flights    ulLl5m rows_written     5</code></pre>
+</div>
+</div>
+<p>Notice that each pipeline gets its own <code>run_id</code>, even within a DAG. Because the result is a plain data.frame, it’s easy to summarise further or write out to a database or file, which makes it a natural fit for monitoring pipeline health over time.</p>
+<p>A couple of other things to know:</p>
+<ul>
+<li>Metrics are only recorded when a pipeline is executed by <code>run_schedule()</code>. Calling <code>update_metric()</code> while developing or testing a pipeline function interactively is harmless: it emits an informational message and does nothing.</li>
+<li>Execution time and success/failure are already available via <code>get_status()</code> and <code>get_schedule()</code>, so there’s no need to record those yourself.</li>
+</ul>
+</section>
+<section id="metrics-are-per-execution" class="level2">
+<h2 class="anchored" data-anchor-id="metrics-are-per-execution">Metrics are per execution</h2>
+<p>Metrics belong to a single execution of a pipeline. Each time a pipeline runs it gets a new <code>run_id</code>, and its metrics are stored separately from those of earlier runs. Within one execution, calling <code>update_metric()</code> again with the same name overwrites the earlier value (the last write wins).</p>
+<p>Running the schedule a second time shows this: the metrics from both runs are retained and distinguished by <code>run_id</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1">status <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_schedule</span>(</span>
+<span id="cb5-2">  schedule,</span>
+<span id="cb5-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">orch_frequency =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"1 hour"</span>,</span>
+<span id="cb5-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">quiet =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb5-5">)</span>
+<span id="cb5-6"></span>
+<span id="cb5-7"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_metrics</span>(schedule)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  pipe_name       run_id metric       value
+  &lt;chr&gt;           &lt;chr&gt;  &lt;chr&gt;        &lt;dbl&gt;
+1 extract_flights vPnJoC rows_read        5
+2 extract_flights vPnJoC bytes_read    1648
+3 extract_flights bilN7s rows_read        5
+4 extract_flights bilN7s bytes_read    1648
+5 load_flights    ulLl5m rows_written     5
+6 load_flights    R9iMP0 rows_written     5</code></pre>
+</div>
+</div>
+</section>
+<section id="accumulating-with-increment-true" class="level2">
+<h2 class="anchored" data-anchor-id="accumulating-with-increment-true">Accumulating with <code>increment = TRUE</code></h2>
+<p>Sometimes a metric is built up over the course of a pipeline rather than computed once, like counting API calls inside a loop or the number of attempts on a flaky task. Setting <code>increment = TRUE</code> adds <code>value</code> to the metric’s current value instead of overwriting it. If the metric hasn’t been set yet in the current run, the first call simply sets it. A negative <code>value</code> decrements.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' ./pipelines/metric_increment.R</span></span>
+<span id="cb7-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#' @maestroFrequency 1 day</span></span>
+<span id="cb7-3">fetch_paginated <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb7-4">  </span>
+<span id="cb7-5">  results <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb7-6">  </span>
+<span id="cb7-7">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (page <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>) {</span>
+<span id="cb7-8">    attempts <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb7-9">    </span>
+<span id="cb7-10">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">repeat</span> {</span>
+<span id="cb7-11">      attempts <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> attempts <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb7-12">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">update_metric</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"attempts"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">increment =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb7-13">      </span>
+<span id="cb7-14">      <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Pretends to call an API that sometimes fails</span></span>
+<span id="cb7-15">      ok <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">runif</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.5</span></span>
+<span id="cb7-16">      <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (ok <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">||</span> attempts <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">break</span></span>
+<span id="cb7-17">    }</span>
+<span id="cb7-18">    </span>
+<span id="cb7-19">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">update_metric</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"api_calls"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">increment =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb7-20">    results[[page]] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.frame</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">page =</span> page, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>))</span>
+<span id="cb7-21">  }</span>
+<span id="cb7-22">  </span>
+<span id="cb7-23">  df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">do.call</span>(rbind, results)</span>
+<span id="cb7-24">  </span>
+<span id="cb7-25">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Overwriting (the default) is fine for a one-off value</span></span>
+<span id="cb7-26">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">update_metric</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rows_read"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(df))</span>
+<span id="cb7-27">  </span>
+<span id="cb7-28">  df</span>
+<span id="cb7-29">}</span></code></pre></div></div>
+</div>
+<p>In this example both <code>api_calls</code> and <code>attempts</code> accumulate. When it finishes, <code>api_calls</code> is 3 (one per page) while <code>attempts</code> is at least 3, depending on how many retries were needed. Each metric still ends up with a single value per pipeline run.</p>
+<p>For the full details, see the <a href="https://whipson.github.io/maestro/articles/maestro-9-metrics.html">metrics vignette</a>.</p>
+</section>
+<section id="other-recent-changes" class="level2">
+<h2 class="anchored" data-anchor-id="other-recent-changes">Other recent changes</h2>
+<p>If you missed the 1.3.x releases, there are a couple of smaller things worth mentioning:</p>
+<ul>
+<li>The new <code>@maestroCascadeTags</code> tag propagates selected metadata tags (<code>label</code>, <code>flags</code>, and/or <code>loglevel</code>) from a pipeline to all of its downstream pipelines in a DAG. With no value, it cascades all three.</li>
+<li><code>get_slot_usage()</code> gained <code>min_datetime</code> and <code>max_datetime</code> parameters so the time window can be fixed rather than anchored to the current time.</li>
+</ul>
+<p>The full list of changes is in the <a href="https://whipson.github.io/maestro/news/index.html">release notes</a>.</p>
+<p>As always, happy orchestrating!</p>
+
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>data pipelines</category>
+  <category>orchestration</category>
+  <category>maestro</category>
+  <category>packages</category>
+  <category>release</category>
+  <guid>https://whipson.github.io/data-in-flight/posts/maestro-1-4-0/maestro-1-4-0-release.html</guid>
+  <pubDate>Thu, 15 Oct 2026 03:00:00 GMT</pubDate>
+</item>
 <item>
   <title>maestro reaches stable release</title>
   <dc:creator>Will Hipson</dc:creator>
